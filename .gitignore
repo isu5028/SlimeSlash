@@ -1,0 +1,13 @@
+.vs/
+.vscode/
+x64/
+CubeGame/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.cso
