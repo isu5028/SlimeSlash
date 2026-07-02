@@ -15,6 +15,7 @@ struct Triangle
 	~Triangle();
 
 	bool CreateVertexBuffer(Renderer& renderer);
+	bool DestroyVertexBuffer();
 	void Draw(Renderer& renderer);
 
 private:

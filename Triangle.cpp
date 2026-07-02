@@ -1,4 +1,4 @@
-#include "Triangle.h"
+ï»¿#include "Triangle.h"
 #include "Renderer.h"
 
 Triangle::Triangle()
@@ -40,6 +40,11 @@ bool Triangle::CreateVertexBuffer(Renderer& renderer)
 	return true;
 }
 
+bool Triangle::DestroyVertexBuffer()
+{
+	return true;
+}
+
 void Triangle::Draw(Renderer& renderer)
 {
 	updateTransform();
@@ -55,12 +60,9 @@ void Triangle::setupTransform(Renderer& renderer)
 {
 	auto& cb = renderer.GetRenderParam().CbTransformSet;
 	auto mtx = DirectX::XMMatrixTranslation(translateX_, translateY_, 0);
-	//auto mtxRot = XMMatrixRotationZ(angle_);
-	//auto mtxScl = XMMatrixScaling(scale_, scale_, 1.f);
-	//auto mtx = mtxScl * mtxRot * mtxTrl;
 	DirectX::XMStoreFloat4x4(&cb.Data.Transform, XMMatrixTranspose(mtx));
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	// CBuffer‚É‚Ð‚à‚Ã‚­ƒn[ƒhƒEƒFƒAƒŠƒ\[ƒXƒ}ƒbƒvŽæ“¾iƒƒbƒN‚µ‚ÄŽæ“¾j
+	// CBufferã«ã²ã‚‚ã¥ããƒãƒ¼ãƒ‰ã‚¦ã‚§ã‚¢ãƒªã‚½ãƒ¼ã‚¹ãƒžãƒƒãƒ—å–å¾—ï¼ˆãƒ­ãƒƒã‚¯ã—ã¦å–å¾—ï¼‰
 	auto pDeviceContext = renderer.GetDeviceContext();
 	HRESULT hr = pDeviceContext->Map(
 		cb.pBuffer,
@@ -73,7 +75,7 @@ void Triangle::setupTransform(Renderer& renderer)
 		return;
 	}
 	CopyMemory(mappedResource.pData, &cb.Data, sizeof(cb.Data));
-	//ƒ}ƒbƒv‰ðœ
+	//ãƒžãƒƒãƒ—è§£é™¤
 	pDeviceContext->Unmap(cb.pBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &cb.pBuffer);
 }

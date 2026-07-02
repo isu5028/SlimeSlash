@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CbTransform.h"
+
 struct CbTransformSet
 {
 	CbTransform Data;

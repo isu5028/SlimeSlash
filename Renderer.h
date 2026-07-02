@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <DirectXMath.h>
 #include "Shader.h"
 #include "Triangle.h"
 #include "RenderParam.h"
@@ -20,12 +21,13 @@ public:
     RenderParam& GetRenderParam() { return renderParam_; }
 
     bool CompileShader(const WCHAR*, const WCHAR*, Shader&);
+    bool SetupViewTransform(const DirectX::XMMATRIX& viewMat);
 
 private:
     bool initDeviceAndSwapChain(HWND hWindow);
     bool initBackBuffer();
+    bool setupProjectionTransform();
 
-private:
     //! 機能レベルの配列
     static const UINT FEATURE_LEVELS_NUM = 4;
     D3D_FEATURE_LEVEL pFeatureLevels_[FEATURE_LEVELS_NUM] = {
@@ -44,9 +46,11 @@ private:
     RenderParam renderParam_;
     //! スワップチェイン
     IDXGISwapChain* pSwapChain_ = nullptr;
-
     //! 描画ターゲットビュー
     ID3D11RenderTargetView* pRenderTargetView_ = nullptr;
+    //! ブレンドステート
+    ID3D11BlendState* pBlendState_ = nullptr;
+
     //! ビューポート
     D3D11_VIEWPORT viewPort_[1];
 
@@ -56,4 +60,9 @@ private:
     UINT backBufferNum_ = 3;
     UINT screenWidth_ = 0;
     UINT screenHeight_ = 0;
+
+    float nearClipDist_ = 0.f;
+    float farClipDist_ = 0.f;
+    float fov_ = 0.f;
+
 };

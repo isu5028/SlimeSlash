@@ -1,6 +1,9 @@
 #include "Renderer.h"
 
 Renderer::Renderer()
+    : nearClipDist_(0.1f)
+    , farClipDist_(1000.f)
+    , fov_(XMConvertToRadians(30.f))
 {
 }
 
@@ -19,8 +22,73 @@ bool Renderer::Initialize(HWND hWindow)
     if (!initDeviceAndSwapChain(hWindow)) return false;
     if (!initBackBuffer()) return false;
     if (!CompileShader(L"VertexShader.hlsl", L"PixelShader.hlsl", defaultShader_)) return false;
-    if (!sampleTriangle_.CreateVertexBuffer(*this)) return false;
     if (!renderParam_.Initialize(*this)) return false;
+    if (!setupProjectionTransform()) return false;
+
+    return true;
+}
+
+/*
+ * 透視投影行列を設定
+ */
+bool Renderer::setupProjectionTransform()
+{
+    XMMATRIX mat = XMMatrixPerspectiveFovLH(
+        fov_,
+        static_cast<float>(screenWidth_) / static_cast<float>(screenHeight_),   // アスペクト比
+        nearClipDist_,
+        farClipDist_);
+    mat = XMMatrixTranspose(mat);
+
+    auto& cb = GetRenderParam().CbProjectionSet;
+    XMStoreFloat4x4(&cb.Data.Projection, mat);
+
+    D3D11_MAPPED_SUBRESOURCE mappedResource;
+    auto pDeviceContext = GetDeviceContext();
+    // CBufferにひもづくハードウェアリソースマップ取得（ロックして取得）
+    HRESULT hr = pDeviceContext->Map(
+        cb.pBuffer,
+        0,
+        D3D11_MAP_WRITE_DISCARD,
+        0,
+        &mappedResource);
+    if (FAILED(hr)) {
+        return false;
+    }
+    CopyMemory(mappedResource.pData, &cb.Data, sizeof(cb.Data));
+    // マップ解除
+    pDeviceContext->Unmap(cb.pBuffer, 0);
+
+    // VSにProjectionMatrixをセット(ここで1度セットして以後不変)
+    pDeviceContext->VSSetConstantBuffers(2, 1, &cb.pBuffer);
+
+    return true;
+}
+
+bool Renderer::SetupViewTransform(const XMMATRIX& viewMat)
+{
+    auto& cb = GetRenderParam().CbViewSet;
+    XMStoreFloat4x4(&cb.Data.View, XMMatrixTranspose(viewMat));
+
+    D3D11_MAPPED_SUBRESOURCE mappedResource;
+    auto pDeviceContext = GetDeviceContext();
+    // CBufferにひもづくハードウェアリソースマップ取得（ロックして取得）
+    HRESULT hr = pDeviceContext->Map(
+        cb.pBuffer,
+        0,
+        D3D11_MAP_WRITE_DISCARD,
+        0,
+        &mappedResource);
+    if (FAILED(hr)) {
+        //DXTRACE_ERR(L"DrawSceneGraph failed", hr);
+        return false;
+    }
+    CopyMemory(mappedResource.pData, &cb.Data, sizeof(cb.Data));
+    // マップ解除
+    pDeviceContext->Unmap(cb.pBuffer, 0);
+
+    // VSにViewMatrixをセット
+    pDeviceContext->VSSetConstantBuffers(1, 1, &cb.pBuffer);
 
     return true;
 }
@@ -103,6 +171,25 @@ bool Renderer::initBackBuffer()
         return false;
     }
 
+    // RenderTarget0へのAlphaブレンド描画設定
+    D3D11_BLEND_DESC BlendState;
+    ZeroMemory(&BlendState, sizeof(D3D11_BLEND_DESC));
+    BlendState.AlphaToCoverageEnable = FALSE;
+    BlendState.IndependentBlendEnable = FALSE;
+    BlendState.RenderTarget[0].BlendEnable = TRUE;
+    BlendState.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    BlendState.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    BlendState.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    BlendState.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    BlendState.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    BlendState.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    BlendState.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    hr = pD3DDevice_->CreateBlendState(&BlendState, &pBlendState_);
+    if (FAILED(hr)) {
+        //TRACE(L"InitDirect3D g_pD3DDevice->CreateBlendState", hr);
+        return false;
+    }
+
     // ビューポートの設定
     viewPort_[0].TopLeftX = 0.0f; // ビューポート領域の左上X座標
     viewPort_[0].TopLeftY = 0.0f; // ビューポート領域の左上Y座標
@@ -124,12 +211,15 @@ void Renderer::Draw()
     float color[] = {0.f, 0.f, 0.f, 0.f};
     pImmediateContext_->ClearRenderTargetView(pRenderTargetView_, color);
 
+    // OMにブレンドステートオブジェクトを設定
+    FLOAT BlendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
+    pImmediateContext_->OMSetBlendState(pBlendState_, BlendFactor, 0xffffffff);
+
     pImmediateContext_->IASetInputLayout(defaultShader_.pInputLayout);
     pImmediateContext_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pImmediateContext_->VSSetShader(defaultShader_.pVertexShader, nullptr, 0);
     pImmediateContext_->PSSetShader(defaultShader_.pPixelShader, nullptr, 0);
 
-    sampleTriangle_.Draw(*this);
 }
 
 void Renderer::Swap()
@@ -153,6 +243,7 @@ void Renderer::Terminate()
     // 取得したインターフェイスの開放
     DX_SAFE_RELEASE(pRenderTargetView_);
     DX_SAFE_RELEASE(pSwapChain_);
+    DX_SAFE_RELEASE(pBlendState_);
 
     DX_SAFE_RELEASE(pImmediateContext_);
     DX_SAFE_RELEASE(pD3DDevice_);
