@@ -13,7 +13,7 @@ Camera::~Camera()
 void Camera::Update()
 {
 	// 0.03は適当なので環境に合わせて変えてOK
-	eyePos_.y += 0.03f;
+	//eyePos_.y += 0.03f;
 	if (eyePos_.y > 10.f) {
 		eyePos_.y = 0.f;
 	}

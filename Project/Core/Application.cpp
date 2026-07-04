@@ -1,10 +1,11 @@
 #include "Application.h"
 
-void Application::Initialize(HINSTANCE hInst)
+bool Application::Initialize(HINSTANCE hInst)
 {
-	window_.Initialize(hInst);
-	renderer_.Initialize(window_.GetWindowHandle());
+	if (!window_.Initialize(hInst)) return false;
+	if (!renderer_.Initialize(window_.GetWindowHandle())) return false;
 	sceneManager_.Initialize(renderer_);
+	return true;
 }
 
 void Application::Loop()

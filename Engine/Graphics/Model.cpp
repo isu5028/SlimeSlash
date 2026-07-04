@@ -52,34 +52,8 @@ void Model::Terminate()
 
 void Model::Draw(Renderer& renderer)
 {
-	setupTransform(renderer);
-
 	for (u_int meshIdx = 0; meshIdx < meshNum_; ++meshIdx)
 	{
 		meshes_[meshIdx].Draw(renderer);
 	}
-}
-
-void Model::setupTransform(Renderer& renderer)
-{
-	auto& cb = renderer.GetRenderParam().CbTransformSet;
-	auto mtx = DirectX::XMMatrixTranslation(translateX_, translateY_, 0);
-	DirectX::XMStoreFloat4x4(&cb.Data.Transform, XMMatrixTranspose(mtx));
-	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	// CBufferにひもづくハードウェアリソースマップ取得（ロックして取得）
-	auto pDeviceContext = renderer.GetDeviceContext();
-	HRESULT hr = pDeviceContext->Map(
-		cb.pBuffer,
-		0,
-		D3D11_MAP_WRITE_DISCARD,
-		0,
-		&mappedResource);
-	if (FAILED(hr)) {
-		//DXTRACE_ERR(L"DrawSceneGraph failed", hr);
-		return;
-	}
-	CopyMemory(mappedResource.pData, &cb.Data, sizeof(cb.Data));
-	//マップ解除
-	pDeviceContext->Unmap(cb.pBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &cb.pBuffer);
 }

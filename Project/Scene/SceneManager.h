@@ -1,6 +1,8 @@
 #pragma once
 
+#include <memory>
 #include "Camera.h"
+#include "GameObject.h"
 
 class SceneManager
 {
@@ -16,6 +18,7 @@ public:
 private:
 	Renderer* pRenderer_ = nullptr;
 	Camera camera_;
-	Triangle sampleTriangle_;
-	Model sampleModel_;
+	
+	std::unique_ptr<GameObject> cube_;
+	std::unique_ptr<GameObject> player_;
 };

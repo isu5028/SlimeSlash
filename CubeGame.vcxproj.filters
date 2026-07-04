@@ -1,52 +1,150 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Core"><UniqueIdentifier>{CFF169F8-9204-47F6-AC73-8D22F94A11C1}</UniqueIdentifier></Filter>
-    <Filter Include="Graphics"><UniqueIdentifier>{5418B579-D810-45CF-95E1-74AC241AC890}</UniqueIdentifier></Filter>
-    <Filter Include="Scene"><UniqueIdentifier>{243E81FC-B187-42E7-9ED6-C7DC22088116}</UniqueIdentifier></Filter>
-    <Filter Include="Shaders"><UniqueIdentifier>{96F51B58-C835-4FFB-A5A6-B5D167BFF8AD}</UniqueIdentifier></Filter>
-    <Filter Include="Assets"><UniqueIdentifier>{10DAFF76-2999-4477-8A6B-A4898A605BCF}</UniqueIdentifier></Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{CFF169F8-9204-47F6-AC73-8D22F94A11C1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{5418B579-D810-45CF-95E1-74AC241AC890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{243E81FC-B187-42E7-9ED6-C7DC22088116}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{96F51B58-C835-4FFB-A5A6-B5D167BFF8AD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{10DAFF76-2999-4477-8A6B-A4898A605BCF}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core\Application.cpp"><Filter>Core</Filter></ClCompile>
-    <ClCompile Include="Core\main.cpp"><Filter>Core</Filter></ClCompile>
-    <ClCompile Include="Core\pch.cpp"><Filter>Core</Filter></ClCompile>
-    <ClCompile Include="Core\Window.cpp"><Filter>Core</Filter></ClCompile>
-    <ClCompile Include="Graphics\Mesh.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\Model.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\Renderer.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\RenderParam.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\Shader.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\Triangle.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Scene\Camera.cpp"><Filter>Scene</Filter></ClCompile>
-    <ClCompile Include="Scene\SceneManager.cpp"><Filter>Scene</Filter></ClCompile>
+    <ClCompile Include="Core\Application.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\main.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\pch.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Window.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Mesh.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Model.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderParam.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Shader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Triangle.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Camera.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\SceneManager.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\GameObject.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\ModelComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\RotateComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\Application.h"><Filter>Core</Filter></ClInclude>
-    <ClInclude Include="Core\pch.h"><Filter>Core</Filter></ClInclude>
-    <ClInclude Include="Core\Window.h"><Filter>Core</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbProjection.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbProjectionSet.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbTransform.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbTransformSet.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbView.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbViewSet.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Mesh.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Model.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Renderer.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\RenderParam.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Shader.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Triangle.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Vertex.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Scene\Camera.h"><Filter>Scene</Filter></ClInclude>
-    <ClInclude Include="Scene\SceneManager.h"><Filter>Scene</Filter></ClInclude>
+    <ClInclude Include="Core\Application.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\pch.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Window.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbProjection.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbProjectionSet.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbTransform.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbTransformSet.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbView.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbViewSet.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Mesh.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Model.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Renderer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderParam.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Shader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Triangle.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Vertex.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Camera.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\SceneManager.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\TransformComponent.h" />
+    <ClInclude Include="Scene\GameObject.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\ModelComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\RotateComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\PixelShader.hlsl"><Filter>Shaders</Filter></FxCompile>
-    <FxCompile Include="Shaders\VertexShader.hlsl"><Filter>Shaders</Filter></FxCompile>
+    <FxCompile Include="Shaders\PixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\VertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\Cube.fbx"><Filter>Assets</Filter></None>
+    <None Include="Assets\Cube.fbx">
+      <Filter>Assets</Filter>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -6,7 +6,7 @@
 class Application
 {
 public:
-	void Initialize(HINSTANCE hInst);
+	bool Initialize(HINSTANCE hInst);
 	void Loop();
 	void Terminate();
 

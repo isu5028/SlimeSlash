@@ -21,7 +21,7 @@ bool Renderer::Initialize(HWND hWindow)
 
     if (!initDeviceAndSwapChain(hWindow)) return false;
     if (!initBackBuffer()) return false;
-    if (!CompileShader(L"Shaders/VertexShader.hlsl", L"Shaders/PixelShader.hlsl", defaultShader_)) return false;
+    if (!CompileShader(L"Engine/Shaders/VertexShader.hlsl", L"Engine/Shaders/PixelShader.hlsl", defaultShader_)) return false;
     if (!renderParam_.Initialize(*this)) return false;
     if (!setupProjectionTransform()) return false;
 
@@ -68,6 +68,7 @@ bool Renderer::setupProjectionTransform()
 bool Renderer::SetupViewTransform(const XMMATRIX& viewMat)
 {
     auto& cb = GetRenderParam().CbViewSet;
+    if (!cb.pBuffer || !GetDeviceContext()) return false;
     XMStoreFloat4x4(&cb.Data.View, XMMatrixTranspose(viewMat));
 
     D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -208,7 +209,7 @@ void Renderer::Draw()
 
     pImmediateContext_->OMSetRenderTargets(1, &pRenderTargetView_, nullptr);
 
-    float color[] = {0.f, 0.f, 0.f, 0.f};
+    float color[] = {0.2f, 0.4f, 0.8f, 0.f};
     pImmediateContext_->ClearRenderTargetView(pRenderTargetView_, color);
 
     // OMにブレンドステートオブジェクトを設定

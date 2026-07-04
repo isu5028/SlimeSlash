@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -77,9 +69,9 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)Core\pch.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>Core;Graphics;Scene;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>$(ProjectDir)Engine\Core\pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)Engine\Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>Engine\Core;Engine\Graphics;Engine\Scene;Engine\Assets;Project\Core;Project\Scene;ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -95,9 +87,9 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)Core\pch.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>Core;Graphics;Scene;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>$(ProjectDir)Engine\Core\pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)Engine\Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>Engine\Core;Engine\Graphics;Engine\Scene;Engine\Assets;Project\Core;Project\Scene;ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -114,9 +106,9 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)Core\pch.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>Core;Graphics;Scene;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>$(ProjectDir)Engine\Core\pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)Engine\Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>Engine\Core;Engine\Graphics;Engine\Scene;Engine\Assets;Project\Core;Project\Scene;ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,72 +124,100 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)Core\pch.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>Core;Graphics;Scene;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>$(ProjectDir)Engine\Core\pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)Engine\Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>Engine\Core;Engine\Graphics;Engine\Scene;Engine\Assets;Project\Core;Project\Scene;ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Core\Application.cpp" />
-    <ClCompile Include="Scene\Camera.cpp" />
-    <ClCompile Include="Core\main.cpp" />
-    <ClCompile Include="Graphics\Mesh.cpp" />
-    <ClCompile Include="Graphics\Model.cpp" />
-    <ClCompile Include="Core\pch.cpp">
+    <ClCompile Include="Engine\Assets\AsepriteLoader.cpp" />
+    <ClCompile Include="Project\Core\Application.cpp" />
+    <ClCompile Include="Project\Core\RuntimePath.cpp" />
+    <ClCompile Include="Engine\Scene\Camera.cpp" />
+    <ClCompile Include="Engine\Scene\AsepriteSpriteComponent.cpp" />
+    <ClCompile Include="Project\Core\main.cpp" />
+    <ClCompile Include="Engine\Graphics\Mesh.cpp" />
+    <ClCompile Include="Engine\Graphics\Model.cpp" />
+    <ClCompile Include="Engine\Core\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Graphics\Renderer.cpp" />
-    <ClCompile Include="Graphics\RenderParam.cpp" />
-    <ClCompile Include="Scene\SceneManager.cpp" />
-    <ClCompile Include="Graphics\Shader.cpp" />
-    <ClCompile Include="Graphics\Triangle.cpp" />
-    <ClCompile Include="Core\Window.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer.cpp" />
+    <ClCompile Include="Engine\Graphics\RenderParam.cpp" />
+    <ClCompile Include="Engine\Scene\GameObject.cpp" />
+    <ClCompile Include="Engine\Scene\ModelComponent.cpp" />
+    <ClCompile Include="Project\Scene\RotateComponent.cpp" />
+    <ClCompile Include="Project\Scene\SceneManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Shader.cpp" />
+    <ClCompile Include="Engine\Graphics\Triangle.cpp" />
+    <ClCompile Include="Engine\Core\Window.cpp" />
+    <ClCompile Include="ThirdParty\zlib\adler32.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><ForcedIncludeFiles></ForcedIncludeFiles></ClCompile>
+    <ClCompile Include="ThirdParty\zlib\crc32.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><ForcedIncludeFiles></ForcedIncludeFiles></ClCompile>
+    <ClCompile Include="ThirdParty\zlib\inflate.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><ForcedIncludeFiles></ForcedIncludeFiles></ClCompile>
+    <ClCompile Include="ThirdParty\zlib\inffast.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><ForcedIncludeFiles></ForcedIncludeFiles></ClCompile>
+    <ClCompile Include="ThirdParty\zlib\inftrees.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><ForcedIncludeFiles></ForcedIncludeFiles></ClCompile>
+    <ClCompile Include="ThirdParty\zlib\uncompr.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><ForcedIncludeFiles></ForcedIncludeFiles></ClCompile>
+    <ClCompile Include="ThirdParty\zlib\zutil.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><ForcedIncludeFiles></ForcedIncludeFiles></ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\Application.h" />
-    <ClInclude Include="Scene\Camera.h" />
-    <ClInclude Include="Graphics\CbProjection.h" />
-    <ClInclude Include="Graphics\CbProjectionSet.h" />
-    <ClInclude Include="Graphics\CbTransform.h" />
-    <ClInclude Include="Graphics\CbTransformSet.h" />
-    <ClInclude Include="Graphics\CbView.h" />
-    <ClInclude Include="Graphics\CbViewSet.h" />
-    <ClInclude Include="Graphics\Mesh.h" />
-    <ClInclude Include="Graphics\Model.h" />
-    <ClInclude Include="Core\pch.h" />
-    <ClInclude Include="Graphics\Renderer.h" />
-    <ClInclude Include="Graphics\RenderParam.h" />
-    <ClInclude Include="Scene\SceneManager.h" />
-    <ClInclude Include="Graphics\Shader.h" />
-    <ClInclude Include="Graphics\Triangle.h" />
-    <ClInclude Include="Graphics\Vertex.h" />
-    <ClInclude Include="Core\Window.h" />
+    <ClInclude Include="Engine\Assets\AsepriteLoader.h" />
+    <ClInclude Include="Project\Core\Application.h" />
+    <ClInclude Include="Project\Core\RuntimePath.h" />
+    <ClInclude Include="Engine\Scene\Camera.h" />
+    <ClInclude Include="Engine\Scene\AsepriteSpriteComponent.h" />
+    <ClInclude Include="Engine\Graphics\CbProjection.h" />
+    <ClInclude Include="Engine\Graphics\CbProjectionSet.h" />
+    <ClInclude Include="Engine\Graphics\CbTransform.h" />
+    <ClInclude Include="Engine\Graphics\CbTransformSet.h" />
+    <ClInclude Include="Engine\Graphics\CbView.h" />
+    <ClInclude Include="Engine\Graphics\CbViewSet.h" />
+    <ClInclude Include="Engine\Graphics\Mesh.h" />
+    <ClInclude Include="Engine\Graphics\Model.h" />
+    <ClInclude Include="Engine\Core\pch.h" />
+    <ClInclude Include="Engine\Graphics\Renderer.h" />
+    <ClInclude Include="Engine\Graphics\RenderParam.h" />
+    <ClInclude Include="Engine\Scene\Component.h" />
+    <ClInclude Include="Engine\Scene\GameObject.h" />
+    <ClInclude Include="Engine\Scene\ModelComponent.h" />
+    <ClInclude Include="Project\Scene\RotateComponent.h" />
+    <ClInclude Include="Project\Scene\SceneManager.h" />
+    <ClInclude Include="Engine\Graphics\Shader.h" />
+    <ClInclude Include="Engine\Graphics\Triangle.h" />
+    <ClInclude Include="Engine\Graphics\Vertex.h" />
+    <ClInclude Include="Engine\Graphics\SpriteVertex.h" />
+    <ClInclude Include="Engine\Core\Window.h" />
+    <ClInclude Include="Engine\Scene\TransformComponent.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\PixelShader.hlsl">
+    <FxCompile Include="Engine\Shaders\PixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shaders\VertexShader.hlsl">
+    <FxCompile Include="Engine\Shaders\VertexShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="Engine\Shaders\SpriteVertexShader.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Engine\Shaders\SpritePixelShader.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\Cube.fbx" />
+    <None Include="Project\Assets\Cube.fbx" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
