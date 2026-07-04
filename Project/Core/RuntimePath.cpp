@@ -11,7 +11,7 @@ namespace
         return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
     }
 
-    bool TryDirectoryAndParents(std::wstring path)
+    bool TryProjectRootAndParents(std::wstring path)
     {
         for (int depth = 0; depth < 8 && !path.empty(); ++depth)
         {
@@ -24,21 +24,25 @@ namespace
         }
         return false;
     }
+
+    bool SetWorkingDirectoryToExecutableDirectory()
+    {
+        wchar_t executablePath[MAX_PATH] = {};
+        const DWORD executableLength = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
+        if (executableLength == 0 || executableLength >= MAX_PATH) return false;
+        std::wstring directory(executablePath, executableLength);
+        const auto separator = directory.find_last_of(L"\\/");
+        if (separator == std::wstring::npos) return false;
+        directory.resize(separator);
+        return SetCurrentDirectoryW(directory.c_str()) != FALSE;
+    }
 }
 
 bool RuntimePath::SetWorkingDirectoryToProjectRoot()
 {
     wchar_t currentDirectory[MAX_PATH] = {};
     const DWORD currentLength = GetCurrentDirectoryW(MAX_PATH, currentDirectory);
-    if (currentLength > 0 && currentLength < MAX_PATH && TryDirectoryAndParents(currentDirectory))
+    if (currentLength > 0 && currentLength < MAX_PATH && TryProjectRootAndParents(currentDirectory))
         return true;
-
-    wchar_t executablePath[MAX_PATH] = {};
-    const DWORD executableLength = GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-    if (executableLength == 0 || executableLength >= MAX_PATH) return false;
-    std::wstring directory(executablePath, executableLength);
-    const auto separator = directory.find_last_of(L"\\/");
-    if (separator == std::wstring::npos) return false;
-    directory.resize(separator);
-    return TryDirectoryAndParents(directory);
+    return SetWorkingDirectoryToExecutableDirectory();
 }

@@ -1,31 +1,35 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+
 #include <Windows.h>
+
+#include <string>
+
 #include "Application.h"
+#include "AssetPack.h"
 #include "RuntimePath.h"
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 {
-	Application* application = new Application();
-	// アプリ初期化
-	if (!RuntimePath::SetWorkingDirectoryToProjectRoot() || !application->Initialize(hInst))
-	{
-		MessageBoxW(nullptr,
-			L"Project/Assets、Engine/Shaders、またはDirect3Dの初期化に失敗しました。",
-			L"CubeGame initialization error", MB_OK | MB_ICONERROR);
-		application->Terminate();
-		delete application;
-		return 1;
-	}
+    Application* application = new Application();
+    std::string assetPackError;
+    if (!RuntimePath::SetWorkingDirectoryToProjectRoot() ||
+        !AssetPack::Initialize(assetPackError) ||
+        !application->Initialize(hInst))
+    {
+        MessageBoxW(
+            nullptr,
+            L"assets.pack or the raw asset folders could not be loaded, or Direct3D initialization failed.",
+            L"CubeGame initialization error",
+            MB_OK | MB_ICONERROR);
+        application->Terminate();
+        delete application;
+        return 1;
+    }
 
-	// ループ：アプリメインの実装を書くところ
-	application->Loop();
-
-	// アプリ終了処理
-	application->Terminate();
-
-	delete(application);
-
-	return 0;
+    application->Loop();
+    application->Terminate();
+    delete application;
+    return 0;
 }

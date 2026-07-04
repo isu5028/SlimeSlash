@@ -105,6 +105,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>$(ProjectDir)Engine\Core\pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>$(ProjectDir)Engine\Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
@@ -123,6 +124,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>$(ProjectDir)Engine\Core\pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>$(ProjectDir)Engine\Core\pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
@@ -137,13 +140,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Assets\AsepriteLoader.cpp" />
+    <ClCompile Include="Engine\Core\GameTime.cpp" />
     <ClCompile Include="Project\Core\Application.cpp" />
+    <ClCompile Include="Project\Core\AssetPack.cpp" />
     <ClCompile Include="Project\Core\RuntimePath.cpp" />
+    <ClCompile Include="Project\Core\SoundPlayer.cpp" />
     <ClCompile Include="Engine\Scene\Camera.cpp" />
     <ClCompile Include="Engine\Scene\AsepriteSpriteComponent.cpp" />
     <ClCompile Include="Project\Core\main.cpp" />
     <ClCompile Include="Engine\Graphics\Mesh.cpp" />
-    <ClCompile Include="Engine\Graphics\Model.cpp" />
     <ClCompile Include="Engine\Core\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -153,8 +158,17 @@
     <ClCompile Include="Engine\Graphics\Renderer.cpp" />
     <ClCompile Include="Engine\Graphics\RenderParam.cpp" />
     <ClCompile Include="Engine\Scene\GameObject.cpp" />
-    <ClCompile Include="Engine\Scene\ModelComponent.cpp" />
     <ClCompile Include="Project\Scene\RotateComponent.cpp" />
+    <ClCompile Include="Project\Scene\ColoredBoxComponent.cpp" />
+    <ClCompile Include="Project\Scene\ColoredPlaneComponent.cpp" />
+    <ClCompile Include="Project\Scene\PlayerControllerComponent.cpp" />
+    <ClCompile Include="Project\Scene\SlashAttackEffectComponent.cpp" />
+    <ClCompile Include="Project\Scene\SlimeControllerComponent.cpp" />
+    <ClCompile Include="Project\Scene\UnitVisualComponent.cpp" />
+    <ClCompile Include="Project\Scene\UnitHitboxComponent.cpp" />
+    <ClCompile Include="Project\Scene\ImpactParticleComponent.cpp" />
+    <ClCompile Include="Project\Scene\HealthBarComponent.cpp" />
+    <ClCompile Include="Project\Scene\UnitHealthComponent.cpp" />
     <ClCompile Include="Project\Scene\SceneManager.cpp" />
     <ClCompile Include="Engine\Graphics\Shader.cpp" />
     <ClCompile Include="Engine\Graphics\Triangle.cpp" />
@@ -169,8 +183,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Assets\AsepriteLoader.h" />
+    <ClInclude Include="Engine\Core\GameTime.h" />
     <ClInclude Include="Project\Core\Application.h" />
+    <ClInclude Include="Project\Core\AssetPack.h" />
     <ClInclude Include="Project\Core\RuntimePath.h" />
+    <ClInclude Include="Project\Core\SoundPlayer.h" />
     <ClInclude Include="Engine\Scene\Camera.h" />
     <ClInclude Include="Engine\Scene\AsepriteSpriteComponent.h" />
     <ClInclude Include="Engine\Graphics\CbProjection.h" />
@@ -180,14 +197,24 @@
     <ClInclude Include="Engine\Graphics\CbView.h" />
     <ClInclude Include="Engine\Graphics\CbViewSet.h" />
     <ClInclude Include="Engine\Graphics\Mesh.h" />
-    <ClInclude Include="Engine\Graphics\Model.h" />
     <ClInclude Include="Engine\Core\pch.h" />
     <ClInclude Include="Engine\Graphics\Renderer.h" />
     <ClInclude Include="Engine\Graphics\RenderParam.h" />
     <ClInclude Include="Engine\Scene\Component.h" />
     <ClInclude Include="Engine\Scene\GameObject.h" />
-    <ClInclude Include="Engine\Scene\ModelComponent.h" />
     <ClInclude Include="Project\Scene\RotateComponent.h" />
+    <ClInclude Include="Project\Scene\ColoredBoxComponent.h" />
+    <ClInclude Include="Project\Scene\ColoredPlaneComponent.h" />
+    <ClInclude Include="Project\Scene\AttackSettings.h" />
+    <ClInclude Include="Project\Scene\HitReceiver.h" />
+    <ClInclude Include="Project\Scene\PlayerControllerComponent.h" />
+    <ClInclude Include="Project\Scene\SlashAttackEffectComponent.h" />
+    <ClInclude Include="Project\Scene\SlimeControllerComponent.h" />
+    <ClInclude Include="Project\Scene\UnitVisualComponent.h" />
+    <ClInclude Include="Project\Scene\UnitHitboxComponent.h" />
+    <ClInclude Include="Project\Scene\ImpactParticleComponent.h" />
+    <ClInclude Include="Project\Scene\HealthBarComponent.h" />
+    <ClInclude Include="Project\Scene\UnitHealthComponent.h" />
     <ClInclude Include="Project\Scene\SceneManager.h" />
     <ClInclude Include="Engine\Graphics\Shader.h" />
     <ClInclude Include="Engine\Graphics\Triangle.h" />
@@ -217,7 +244,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Project\Assets\Cube.fbx" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

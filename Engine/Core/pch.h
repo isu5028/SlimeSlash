@@ -16,7 +16,6 @@
 
 #include "Vertex.h"
 #include "Triangle.h"
-#include "Model.h"
 #include "Renderer.h"
 #include "CbTransform.h"
 #include "CbTransformSet.h"

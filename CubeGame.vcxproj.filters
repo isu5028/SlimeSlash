@@ -30,10 +30,16 @@
     <ClCompile Include="Core\Window.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Mesh.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Engine\Core\GameTime.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Model.cpp">
+    <ClCompile Include="Project\Core\AssetPack.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Core\SoundPlayer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Mesh.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Renderer.cpp">
@@ -57,10 +63,28 @@
     <ClCompile Include="Scene\GameObject.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\ModelComponent.cpp">
+    <ClCompile Include="Scene\RotateComponent.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\RotateComponent.cpp">
+    <ClCompile Include="Project\Scene\SlimeControllerComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\UnitVisualComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\ColoredBoxComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\UnitHitboxComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\ImpactParticleComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\HealthBarComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\UnitHealthComponent.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
@@ -72,6 +96,15 @@
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\Window.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\GameTime.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Core\AssetPack.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Core\SoundPlayer.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\CbProjection.h">
@@ -93,9 +126,6 @@
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Mesh.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Model.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Renderer.h">
@@ -126,10 +156,34 @@
     <ClInclude Include="Scene\Component.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\ModelComponent.h">
+    <ClInclude Include="Scene\RotateComponent.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\RotateComponent.h">
+    <ClInclude Include="Project\Scene\SlimeControllerComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\UnitVisualComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\ColoredBoxComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\HitReceiver.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\AttackSettings.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\UnitHitboxComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\ImpactParticleComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\HealthBarComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\UnitHealthComponent.h">
       <Filter>Scene</Filter>
     </ClInclude>
   </ItemGroup>
@@ -142,9 +196,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\Cube.fbx">
-      <Filter>Assets</Filter>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
 </Project>

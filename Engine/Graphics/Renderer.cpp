@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "AssetPack.h"
 
 Renderer::Renderer()
     : nearClipDist_(0.1f)
@@ -209,18 +210,24 @@ void Renderer::Draw()
 
     pImmediateContext_->OMSetRenderTargets(1, &pRenderTargetView_, nullptr);
 
-    float color[] = {0.2f, 0.4f, 0.8f, 0.f};
+    float color[] = { 0.45490196f, 0.27843139f, 0.23921569f, 1.0f };
     pImmediateContext_->ClearRenderTargetView(pRenderTargetView_, color);
 
     // OMにブレンドステートオブジェクトを設定
     FLOAT BlendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
     pImmediateContext_->OMSetBlendState(pBlendState_, BlendFactor, 0xffffffff);
 
+    ApplyDefaultPipeline();
+}
+
+void Renderer::ApplyDefaultPipeline()
+{
+    if (!pImmediateContext_) return;
+
     pImmediateContext_->IASetInputLayout(defaultShader_.pInputLayout);
     pImmediateContext_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pImmediateContext_->VSSetShader(defaultShader_.pVertexShader, nullptr, 0);
     pImmediateContext_->PSSetShader(defaultShader_.pPixelShader, nullptr, 0);
-
 }
 
 void Renderer::Swap()
@@ -253,12 +260,31 @@ void Renderer::Terminate()
 bool Renderer::CompileShader(const WCHAR* vsPath, const WCHAR* psPath, Shader& outShader)
 {
     ID3DBlob* vsBlob = nullptr;
+    ID3DBlob* psBlob = nullptr;
     ID3DBlob* errBlob = nullptr;
-    auto pDevice = GetDevice();
+    ID3D11VertexShader* vertexShader = nullptr;
+    ID3D11PixelShader* pixelShader = nullptr;
+    ID3D11InputLayout* inputLayout = nullptr;
+    auto* device = GetDevice();
+
+    const auto releaseTemporaryResources = [&]()
+    {
+        DX_SAFE_RELEASE(errBlob);
+        DX_SAFE_RELEASE(psBlob);
+        DX_SAFE_RELEASE(vsBlob);
+        DX_SAFE_RELEASE(inputLayout);
+        DX_SAFE_RELEASE(pixelShader);
+        DX_SAFE_RELEASE(vertexShader);
+    };
+
+    if (!device || !vsPath || !psPath) return false;
 
     // シェーダーコンパイル
+    const std::wstring resolvedVsPath = AssetPack::ResolvePath(vsPath);
+    const std::wstring resolvedPsPath = AssetPack::ResolvePath(psPath);
+
     auto hr = D3DCompileFromFile(
-        vsPath,
+        resolvedVsPath.c_str(),
         nullptr,
         D3D_COMPILE_STANDARD_FILE_INCLUDE,
         "main",
@@ -268,37 +294,47 @@ bool Renderer::CompileShader(const WCHAR* vsPath, const WCHAR* psPath, Shader& o
         &vsBlob,
         &errBlob
     );
-    if (FAILED(hr)) return false;
+    DX_SAFE_RELEASE(errBlob);
+    if (FAILED(hr))
+    {
+        releaseTemporaryResources();
+        return false;
+    }
 
     // 頂点シェーダ作成(シェーダオブジェクト作成)
-    ID3D11VertexShader* pVertexShader = nullptr;
-    hr = pDevice->CreateVertexShader(
+    hr = device->CreateVertexShader(
         vsBlob->GetBufferPointer(),
         vsBlob->GetBufferSize(),
         nullptr,
-        &pVertexShader
+        &vertexShader
     );
-    if (FAILED(hr)) return false;
+    if (FAILED(hr))
+    {
+        releaseTemporaryResources();
+        return false;
+    }
 
     // 入力レイアウトオブジェクト作成
-    ID3D11InputLayout* pInputLayout = nullptr;
     D3D11_INPUT_ELEMENT_DESC layout[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
-    hr = pDevice->CreateInputLayout(
+    hr = device->CreateInputLayout(
         layout,
         _countof(layout),
         vsBlob->GetBufferPointer(),
         vsBlob->GetBufferSize(),
-        &pInputLayout
+        &inputLayout
     );
-    if (FAILED(hr)) return false;
+    if (FAILED(hr))
+    {
+        releaseTemporaryResources();
+        return false;
+    }
 
     // ピクセルシェーダー作成
-    ID3DBlob* psBlob = nullptr;
     hr = D3DCompileFromFile(
-        psPath,
+        resolvedPsPath.c_str(),
         nullptr,
         D3D_COMPILE_STANDARD_FILE_INCLUDE,
         "main",
@@ -308,19 +344,35 @@ bool Renderer::CompileShader(const WCHAR* vsPath, const WCHAR* psPath, Shader& o
         &psBlob,
         &errBlob
     );
+    DX_SAFE_RELEASE(errBlob);
+    if (FAILED(hr))
+    {
+        releaseTemporaryResources();
+        return false;
+    }
 
-    ID3D11PixelShader* pPixelShader = nullptr;
-    hr = pDevice->CreatePixelShader(
+    hr = device->CreatePixelShader(
         psBlob->GetBufferPointer(),
         psBlob->GetBufferSize(),
         nullptr,
-        &pPixelShader
+        &pixelShader
     );
-    if (FAILED(hr)) return false;
+    if (FAILED(hr))
+    {
+        releaseTemporaryResources();
+        return false;
+    }
 
-    outShader.pVertexShader = pVertexShader;
-    outShader.pPixelShader = pPixelShader;
-    outShader.pInputLayout = pInputLayout;
+    DX_SAFE_RELEASE(outShader.pVertexShader);
+    DX_SAFE_RELEASE(outShader.pPixelShader);
+    DX_SAFE_RELEASE(outShader.pInputLayout);
+    outShader.pVertexShader = vertexShader;
+    outShader.pPixelShader = pixelShader;
+    outShader.pInputLayout = inputLayout;
+    vertexShader = nullptr;
+    pixelShader = nullptr;
+    inputLayout = nullptr;
+    releaseTemporaryResources();
 
     return true;
 }

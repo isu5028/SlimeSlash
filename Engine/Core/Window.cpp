@@ -4,8 +4,9 @@
 Window::Window()
 	: sizeWindow_()
 {
-	sizeWindow_.cx = 480;
-	sizeWindow_.cy = 480;
+	// ゲームの描画領域を4:3の960x720に固定する
+	sizeWindow_.cx = 960;
+	sizeWindow_.cy = 720;
 }
 
 Window::~Window()
@@ -35,10 +36,12 @@ bool Window::Initialize(HINSTANCE hInst)
 	rect.left = 0;
 	rect.right = sizeWindow_.cx;
 	rect.bottom = sizeWindow_.cy;
-	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
+	// リサイズ枠と最大化ボタンを持たない固定サイズのウィンドウにする。
+	const DWORD windowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+	AdjustWindowRect(&rect, windowStyle, FALSE);
 
 	hWindow_ = CreateWindow(wc_.lpszClassName, _T("ShowWindow"),
-		WS_OVERLAPPEDWINDOW,
+		windowStyle,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		rect.right - rect.left, rect.bottom - rect.top,
 		nullptr, nullptr, hInst, nullptr);

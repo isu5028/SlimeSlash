@@ -22,6 +22,7 @@ public:
 
     bool CompileShader(const WCHAR*, const WCHAR*, Shader&);
     bool SetupViewTransform(const DirectX::XMMATRIX& viewMat);
+    void ApplyDefaultPipeline();
 
 private:
     bool initDeviceAndSwapChain(HWND hWindow);
