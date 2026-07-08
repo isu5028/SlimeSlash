@@ -61,39 +61,46 @@ void ImpactParticleComponent::Emit(
     const DirectX::XMFLOAT3& position,
     const DirectX::XMFLOAT2& direction,
     bool strong,
-    const DirectX::XMFLOAT4& color)
+    const DirectX::XMFLOAT4& color,
+    float sizeScale,
+    int countOverride)
 {
     const float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
     if (length <= 0.0001f) return;
     const DirectX::XMFLOAT2 forward = { direction.x / length, direction.y / length };
     const DirectX::XMFLOAT2 side = { -forward.y, forward.x };
-    const int count = strong ? 4 : 2;
+    const int count = countOverride > 0 ? countOverride : (strong ? 4 : 2);
     const float speed = strong ? 8.2f : 5.2f;
+    const float spreadAngle = strong ? 0.85f : 0.55f;
 
     for (int index = 0; index < count && particles_.size() < MaxParticles; ++index)
     {
-        const float spread = count > 1
-            ? static_cast<float>(index) / static_cast<float>(count - 1) * 2.0f - 1.0f
-            : 0.0f;
-        const float alternating = (index % 2 == 0) ? 1.0f : -1.0f;
-        const float speedVariation = 0.72f + 0.28f * static_cast<float>((index * 7) % 11) / 10.0f;
+        const std::uint32_t seed =
+            (++emissionCounter_ * 1664525u + 1013904223u);
+        const float angleRandom = static_cast<float>(seed & 0xffffu) / 65535.0f;
+        const float speedRandom = static_cast<float>((seed >> 16) & 0xffffu) / 65535.0f;
+        const float offsetRandom =
+            static_cast<float>(((seed * 1103515245u + 12345u) >> 8) & 0xffffu) / 65535.0f;
+        const float rotationRandom =
+            static_cast<float>(((seed * 214013u + 2531011u) >> 8) & 0xffffu) / 65535.0f;
+        const float emissionAngle = (angleRandom * 2.0f - 1.0f) * spreadAngle;
+        const float directionForward = std::cos(emissionAngle);
+        const float directionSide = std::sin(emissionAngle);
+        const float speedVariation = 0.72f + 0.28f * speedRandom;
         Particle particle;
         particle.position = position;
-        particle.position.x += side.x * spread * 0.18f;
-        particle.position.z += side.y * spread * 0.18f;
+        const float lateralOffset = (offsetRandom * 2.0f - 1.0f) * 0.18f;
+        particle.position.x += side.x * lateralOffset;
+        particle.position.z += side.y * lateralOffset;
         particle.velocity = {
-            (forward.x * (0.72f + 0.18f * alternating) + side.x * spread * 0.85f) * speed * speedVariation,
-            (0.45f + (1.0f - std::abs(spread)) * 0.75f) * speed,
-            (forward.y * (0.72f + 0.18f * alternating) + side.y * spread * 0.85f) * speed * speedVariation
+            (forward.x * directionForward + side.x * directionSide) * speed * speedVariation,
+            (0.45f + (1.0f - std::abs(directionSide)) * 0.75f) * speed,
+            (forward.y * directionForward + side.y * directionSide) * speed * speedVariation
         };
         particle.color = color;
         particle.lifetime = strong ? 0.78f : 0.62f;
-        particle.size = (strong ? 0.1785f : 0.1365f) *
+        particle.size = (strong ? 0.1785f : 0.1365f) * std::max(sizeScale, 0.0f) *
             (0.80f + 0.35f * static_cast<float>((index * 5) % 9) / 8.0f);
-        const std::uint32_t rotationSeed =
-            (++emissionCounter_ * 1664525u + 1013904223u);
-        const float rotationRandom = static_cast<float>(rotationSeed & 0xffffu) / 65535.0f;
-        const float speedRandom = static_cast<float>((rotationSeed >> 16) & 0xffffu) / 65535.0f;
         particle.rotation = rotationRandom * DirectX::XM_2PI;
         particle.angularVelocity = (speedRandom < 0.5f ? -1.0f : 1.0f) *
             (5.0f + std::abs(speedRandom - 0.5f) * 8.0f);

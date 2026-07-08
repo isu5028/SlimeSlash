@@ -3,6 +3,7 @@
 #endif
 
 #include <Windows.h>
+#include <objbase.h>
 
 #include <string>
 
@@ -12,6 +13,7 @@
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 {
+    const HRESULT comResult = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     Application* application = new Application();
     std::string assetPackError;
     if (!RuntimePath::SetWorkingDirectoryToProjectRoot() ||
@@ -25,11 +27,13 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
             MB_OK | MB_ICONERROR);
         application->Terminate();
         delete application;
+        if (SUCCEEDED(comResult)) CoUninitialize();
         return 1;
     }
 
     application->Loop();
     application->Terminate();
     delete application;
+    if (SUCCEEDED(comResult)) CoUninitialize();
     return 0;
 }

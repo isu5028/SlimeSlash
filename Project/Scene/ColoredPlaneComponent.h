@@ -16,6 +16,8 @@ public:
     void SetVisible(bool visible) { visible_ = visible; }
     void SetDissolveAmount(float amount);
     void SetDissolvePixelSize(float width, float depth);
+    void SetUniformDissolve(bool uniform) { uniformDissolve_ = uniform; }
+    void SetOpacity(float opacity);
 
 private:
     void SetupWorldTransform(Renderer& renderer);
@@ -30,5 +32,7 @@ private:
     float dissolveAmount_ = 0.0f;
     float dissolvePixelWidth_ = 0.0625f;
     float dissolvePixelDepth_ = 0.0625f;
+    float opacity_ = 1.0f;
+    bool uniformDissolve_ = false;
     bool visible_ = true;
 };

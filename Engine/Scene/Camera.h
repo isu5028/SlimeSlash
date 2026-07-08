@@ -11,6 +11,8 @@ public:
 	void Update();
 	void SetEyePosition(const XMFLOAT3& position) { eyePos_ = position; }
 	void SetFocusPosition(const XMFLOAT3& position) { focutPos_ = position; }
+	const XMFLOAT3& GetEyePosition() const { return eyePos_; }
+	const XMFLOAT3& GetFocusPosition() const { return focutPos_; }
 	void TriggerShake(
 		const XMFLOAT2& worldDirection,
 		float strength,

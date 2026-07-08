@@ -22,6 +22,7 @@ namespace
     constexpr float MoveSpeed = 3.0f;
     constexpr float DashSpeed = 14.0f;
     constexpr float DashDuration = 0.18f;
+    constexpr float DashCooldownDuration = 0.20f;
     constexpr float FirstAttackCooldown = 0.12f;
     constexpr float SecondAttackCooldown = 0.2f;
     constexpr float ThirdAttackCooldown = 0.28f;
@@ -37,6 +38,16 @@ namespace
     constexpr float NormalHitShakeStrength = 0.08f;
     constexpr float StrongHitShakeStrength = 0.18f;
     constexpr float PlayerDamageShakeStrength = 0.24f;
+    constexpr const wchar_t* AttackHitSoundPaths[] = {
+        L"Project/Assets/Sounds/PlayerAttackHit.wav",
+        L"Project/Assets/Sounds/PlayerAttackHit.wav",
+        L"Project/Assets/Sounds/PlayerAttackHit.wav"
+    };
+    constexpr const wchar_t* AttackMissSoundPaths[] = {
+        L"Project/Assets/Sounds/PlayerAttackMiss.wav",
+        L"Project/Assets/Sounds/PlayerAttackMiss.wav",
+        L"Project/Assets/Sounds/PlayerAttackMiss.wav"
+    };
     // 強い初速と重力で、短時間に上昇・下降するゲームらしいジャンプにする。
     constexpr float InitialJumpVelocity = 10.f;
     constexpr float HeldJumpAcceleration = 3.0f;
@@ -54,6 +65,12 @@ namespace
         }
 
         return direction.y >= 0.0f ? -1.0f : 1.0f;
+    }
+
+    const wchar_t* GetAttackSoundPath(bool hit, int comboStage)
+    {
+        const int index = std::max(1, std::min(comboStage, 3)) - 1;
+        return hit ? AttackHitSoundPaths[index] : AttackMissSoundPaths[index];
     }
 }
 
@@ -80,6 +97,13 @@ PlayerControllerComponent::PlayerControllerComponent(
     , groundY_(groundY)
     , previousUpdate_(std::chrono::steady_clock::now())
 {
+}
+
+bool PlayerControllerComponent::HasFullyDisappearedAfterDeath() const
+{
+    return dead_ &&
+        deathDissolveDelayRemaining_ <= 0.0f &&
+        deathAnimationTimeRemaining_ <= 0.0f;
 }
 
 bool PlayerControllerComponent::IsKeyDown(int virtualKey) const
@@ -141,6 +165,8 @@ void PlayerControllerComponent::BeginDeath()
     nextAttackStage_ = 1;
     comboResetTimeRemaining_ = 0.0f;
     dashing_ = false;
+    dashCooldownRemaining_ = 0.0f;
+    bufferedDash_ = false;
 
     deathAnimationTimeRemaining_ = std::max(
         sprite_.GetAnimationDurationSeconds("Die"), 0.1f);
@@ -151,14 +177,95 @@ void PlayerControllerComponent::BeginDeath()
     }
 }
 
+bool PlayerControllerComponent::ApplyDamageReaction(
+    int damage,
+    const DirectX::XMFLOAT2& knockbackDirection,
+    const DirectX::XMFLOAT3& impactPosition)
+{
+    if (damage <= 0 || dead_ || damageInvulnerabilityTimeRemaining_ > 0.0f) return false;
+
+    float directionX = knockbackDirection.x;
+    float directionZ = knockbackDirection.y;
+    const float length = std::sqrt(directionX * directionX + directionZ * directionZ);
+    if (length > 0.0001f)
+    {
+        directionX /= length;
+        directionZ /= length;
+    }
+    else
+    {
+        directionX = -facingDirection_.x;
+        directionZ = -facingDirection_.y;
+    }
+
+    if (!health_.Damage(damage)) return false;
+    const bool lethalDamage = !health_.IsAlive();
+
+    damageKnockbackVelocity_ = {
+        directionX * DamageKnockbackSpeed,
+        directionZ * DamageKnockbackSpeed
+    };
+    SoundPlayer::Play(L"Project/Assets/Sounds/PlayerDamaged.wav");
+    impactParticles_.Emit(
+        impactPosition, { directionX, directionZ }, true,
+        { 1.0f, 1.0f, 1.0f, 1.0f });
+    camera_.TriggerShake(
+        { directionX, directionZ }, PlayerDamageShakeStrength, 0.40f, true);
+    GameTime::StartHitStop(0.10f);
+    attackAnimationTimeRemaining_ = 0.0f;
+    bufferedAttack_ = false;
+    nextAttackStage_ = 1;
+    comboResetTimeRemaining_ = 0.0f;
+    dashing_ = false;
+    dashCooldownRemaining_ = 0.0f;
+    bufferedDash_ = false;
+    if (lethalDamage)
+    {
+        BeginDeath();
+    }
+    else
+    {
+        damageKnockbackTimeRemaining_ = DamageKnockbackDuration;
+        damageInvulnerabilityTimeRemaining_ = DamageInvulnerabilityDuration;
+        damageAnimationTimeRemaining_ = sprite_.GetAnimationDurationSeconds("Damaged");
+        damageActionLockTimeRemaining_ = damageAnimationTimeRemaining_ * 0.25f;
+        damageFlashElapsed_ = 0.0f;
+        visual_.SetFlash(DamageFlashColor, 1.0f);
+        sprite_.Play("Damaged", true);
+        currentAnimationState_ = AnimationState::Damaged;
+    }
+    return true;
+}
+
+bool PlayerControllerComponent::ReceiveHazardDamage(
+    const DirectX::XMFLOAT2& knockbackDirection,
+    int damage,
+    const DirectX::XMFLOAT3& impactPosition)
+{
+    if (dashing_) return false;
+    return ApplyDamageReaction(damage, knockbackDirection, impactPosition);
+}
+
+void PlayerControllerComponent::StartDash()
+{
+    SoundPlayer::Play(L"Project/Assets/Sounds/Dash.wav");
+    if (!grounded_) airDashUsed_ = true;
+    dashing_ = true;
+    bufferedDash_ = false;
+    dashCooldownRemaining_ = 0.0f;
+    dashElapsed_ = 0.0f;
+    verticalVelocity_ = 0.0f;
+    dashDirection_ = facingDirection_;
+    dashSpinDirection_ = DetermineDashSpinDirection(dashDirection_);
+    visual_.SetFacingFromHorizontalMovement(dashDirection_.x);
+}
+
 void PlayerControllerComponent::StartAttack(int comboStage)
 {
     damageAnimationTimeRemaining_ = 0.0f;
     attackEffect_.Trigger(facingDirection_, comboStage);
     const bool hit = TryHitAttackTargets(comboStage);
-    SoundPlayer::Play(hit
-        ? L"Project/Assets/Sounds/PlayerAttackHit.wav"
-        : L"Project/Assets/Sounds/PlayerAttackMiss.wav");
+    SoundPlayer::Play(GetAttackSoundPath(hit, comboStage));
     attackAnimationTimeRemaining_ = sprite_.GetAnimationDurationSeconds("Attack");
     sprite_.Play("Attack", true);
     currentAnimationState_ = AnimationState::Attack;
@@ -204,7 +311,8 @@ bool PlayerControllerComponent::TryHitAttackTarget(
     const float offsetX = targetPosition.x - playerPosition.x;
     const float offsetZ = targetPosition.z - playerPosition.z;
     const float distance = std::sqrt(offsetX * offsetX + offsetZ * offsetZ);
-    const float distanceToHitbox = std::max(0.0f, distance - target.hitbox->GetRadius());
+    const float distanceToHitbox = std::max(
+        0.0f, distance - target.hitbox->GetDirectionalRadius(offsetX, offsetZ));
     if (distance <= 0.0001f ||
         distanceToHitbox > AttackSettings::GetHitRange(comboStage)) return false;
 
@@ -226,10 +334,15 @@ bool PlayerControllerComponent::TryHitAttackTarget(
     const float knockbackSpeed =
         comboStage == 1 ? 2.f : comboStage == 2 ? 3.f : 8.f;
     target.hitReceiver->ReceiveHit(facingDirection_, knockbackSpeed);
-    auto impactPosition = targetPosition;
-    impactPosition.y += target.hitbox->GetHeight() * 0.55f;
-    const DirectX::XMFLOAT4 particleColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-    impactParticles_.Emit(impactPosition, facingDirection_, comboStage == 3, particleColor);
+    if (target.emitsHitEffect)
+    {
+        auto impactPosition = targetPosition;
+        impactPosition.y += target.hitbox->GetHeight() * 0.55f;
+        impactParticles_.Emit(
+            impactPosition, facingDirection_, comboStage == 3,
+            target.hitEffectColor, target.hitEffectSizeScale,
+            target.hitEffectCountOverride);
+    }
     if (comboStage == 3)
     {
         camera_.TriggerShake(facingDirection_, StrongHitShakeStrength, 0.34f, true);
@@ -252,14 +365,17 @@ bool PlayerControllerComponent::TryTakeContactDamage(const DirectX::XMFLOAT3& po
     for (auto& target : attackTargets_)
     {
         if (!target.object || !target.hitbox || !target.health ||
-            !target.health->CanTakeDamage()) continue;
+            !target.health->CanTakeDamage() || !target.causesContactDamage) continue;
+        auto* contactHitbox = target.contactHitbox ? target.contactHitbox : target.hitbox;
         const auto& targetPosition = target.object->GetTransform().GetPosition();
         const float offsetX = position.x - targetPosition.x;
         const float offsetZ = position.z - targetPosition.z;
-        const float distanceSquared = offsetX * offsetX + offsetZ * offsetZ;
-        const float contactRadius = hitbox_.GetRadius() + target.hitbox->GetRadius();
+        const float depthScale = 1.0f / UnitHitboxComponent::DepthRadiusScale;
+        const float scaledOffsetZ = offsetZ * depthScale;
+        const float distanceSquared = offsetX * offsetX + scaledOffsetZ * scaledOffsetZ;
+        const float contactRadius = hitbox_.GetRadius() + contactHitbox->GetRadius();
         const float playerTop = position.y + hitbox_.GetHeight();
-        const float targetTop = targetPosition.y + target.hitbox->GetHeight();
+        const float targetTop = targetPosition.y + contactHitbox->GetHeight();
         if (distanceSquared > contactRadius * contactRadius ||
             playerTop < targetPosition.y || position.y > targetTop) continue;
         if (!contactTarget || distanceSquared < contactDistanceSquared)
@@ -274,47 +390,14 @@ bool PlayerControllerComponent::TryTakeContactDamage(const DirectX::XMFLOAT3& po
     const float offsetX = position.x - targetPosition.x;
     const float offsetZ = position.z - targetPosition.z;
     const float distance = std::sqrt(contactDistanceSquared);
-    if (!health_.Damage(2)) return false;
-    const bool lethalDamage = !health_.IsAlive();
-
     DirectX::XMFLOAT2 knockbackDirection = { -facingDirection_.x, -facingDirection_.y };
     if (distance > 0.0001f)
     {
         knockbackDirection = { offsetX / distance, offsetZ / distance };
     }
-    damageKnockbackVelocity_ = {
-        knockbackDirection.x * DamageKnockbackSpeed,
-        knockbackDirection.y * DamageKnockbackSpeed
-    };
-    SoundPlayer::Play(L"Project/Assets/Sounds/PlayerDamaged.wav");
     auto impactPosition = position;
     impactPosition.y += hitbox_.GetHeight() * 0.55f;
-    impactParticles_.Emit(
-        impactPosition, knockbackDirection, true,
-        { 1.0f, 1.0f, 1.0f, 1.0f });
-    camera_.TriggerShake(knockbackDirection, PlayerDamageShakeStrength, 0.40f, true);
-    GameTime::StartHitStop(0.10f);
-    attackAnimationTimeRemaining_ = 0.0f;
-    bufferedAttack_ = false;
-    nextAttackStage_ = 1;
-    comboResetTimeRemaining_ = 0.0f;
-    dashing_ = false;
-    if (lethalDamage)
-    {
-        BeginDeath();
-    }
-    else
-    {
-        damageKnockbackTimeRemaining_ = DamageKnockbackDuration;
-        damageInvulnerabilityTimeRemaining_ = DamageInvulnerabilityDuration;
-        damageAnimationTimeRemaining_ = sprite_.GetAnimationDurationSeconds("Damaged");
-        damageActionLockTimeRemaining_ = damageAnimationTimeRemaining_ * 0.25f;
-        damageFlashElapsed_ = 0.0f;
-        visual_.SetFlash(DamageFlashColor, 1.0f);
-        sprite_.Play("Damaged", true);
-        currentAnimationState_ = AnimationState::Damaged;
-    }
-    return true;
+    return ApplyDamageReaction(2, knockbackDirection, impactPosition);
 }
 
 void PlayerControllerComponent::Update()
@@ -351,6 +434,8 @@ void PlayerControllerComponent::Update()
 
     attackAnimationTimeRemaining_ =
         std::max(0.0f, attackAnimationTimeRemaining_ - deltaTime);
+    dashCooldownRemaining_ =
+        std::max(0.0f, dashCooldownRemaining_ - deltaTime);
     attackCooldownRemaining_ =
         std::max(0.0f, attackCooldownRemaining_ - deltaTime);
     comboResetTimeRemaining_ =
@@ -395,14 +480,6 @@ void PlayerControllerComponent::Update()
         moveX /= moveLength;
         moveZ /= moveLength;
 
-        const float facingDot = facingDirection_.x * moveX + facingDirection_.y * moveZ;
-        if (facingDot < 0.999f)
-        {
-            nextAttackStage_ = 1;
-            bufferedAttack_ = false;
-            comboResetTimeRemaining_ = 0.0f;
-        }
-
         facingDirection_ = { moveX, moveZ };
         position.x += moveX * MoveSpeed * deltaTime;
         position.z += moveZ * MoveSpeed * deltaTime;
@@ -419,19 +496,19 @@ void PlayerControllerComponent::Update()
     const bool jumpKey = IsKeyDown(VK_SPACE);
     const bool attackKey = IsKeyDown('J') || IsKeyDown('Z');
     const bool dashKey = IsKeyDown(VK_SHIFT) || IsKeyDown('K');
+    const bool dashPressed = dashKey && !previousDashKey_;
 
     const bool canStartDash = grounded_ || !airDashUsed_;
-    if (dashKey && !previousDashKey_ && !dashing_ && !beingKnockedBack &&
-        canStartDash)
+    if (dashPressed && !dashing_ && !beingKnockedBack && canStartDash)
     {
-        SoundPlayer::Play(L"Project/Assets/Sounds/Dash.wav");
-        if (!grounded_) airDashUsed_ = true;
-        dashing_ = true;
-        dashElapsed_ = 0.0f;
-        verticalVelocity_ = 0.0f;
-        dashDirection_ = facingDirection_;
-        dashSpinDirection_ = DetermineDashSpinDirection(dashDirection_);
-        visual_.SetFacingFromHorizontalMovement(dashDirection_.x);
+        if (dashCooldownRemaining_ <= 0.0f)
+        {
+            StartDash();
+        }
+        else
+        {
+            bufferedDash_ = true;
+        }
     }
 
     if (dashing_)
@@ -447,12 +524,19 @@ void PlayerControllerComponent::Update()
         {
             dashing_ = false;
             dashElapsed_ = 0.0f;
+            dashCooldownRemaining_ = DashCooldownDuration;
             rotation.z = 0.0f;
         }
     }
     else
     {
         rotation.z = 0.0f;
+    }
+
+    if (!dashing_ && bufferedDash_ && dashCooldownRemaining_ <= 0.0f &&
+        !beingKnockedBack && canStartDash)
+    {
+        StartDash();
     }
 
     if (beingKnockedBack)

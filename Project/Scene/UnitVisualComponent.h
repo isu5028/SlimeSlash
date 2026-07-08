@@ -27,6 +27,7 @@ public:
     void SetVisible(bool visible);
     void SetDissolveAmount(float amount);
     void SetShadowVisible(bool visible);
+    void SetShadowOffset(float offsetX, float offsetZ);
     bool PlayAnimation(const std::string& tagName, bool restart = false);
     float GetAnimationDurationSeconds(const std::string& tagName) const;
     void SyncShadow();
@@ -36,4 +37,5 @@ private:
     ColoredPlaneComponent& shadowRenderer_;
     AsepriteSpriteComponent& sprite_;
     UnitHitboxComponent* hitbox_ = nullptr;
+    DirectX::XMFLOAT2 shadowOffset_ = { 0.0f, 0.0f };
 };

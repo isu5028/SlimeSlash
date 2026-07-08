@@ -2,6 +2,8 @@
 
 #include "GameObject.h"
 #include "GameTime.h"
+#include "PlayerControllerComponent.h"
+#include "SoundPlayer.h"
 #include "UnitVisualComponent.h"
 #include "UnitHealthComponent.h"
 
@@ -10,6 +12,7 @@
 
 namespace
 {
+    constexpr wchar_t SlimeExplodeSoundPath[] = L"Project/Assets/Sounds/SlimeExplode.wav";
     constexpr float ChaseDuration = 2.2f;
     constexpr float RestDuration = 1.0f;
     constexpr float MoveSpeed = 1.4f;
@@ -20,6 +23,9 @@ namespace
     constexpr float SpawnInterval = 0.45f;
     constexpr float SpawnDuration = 1.0f;
     constexpr float SpawnArcHeight = 3.0f;
+    constexpr float EscapeDuration = 0.95f;
+    constexpr float EscapeArcHeight = 3.6f;
+    constexpr float EscapeDistance = 6.5f;
     constexpr float GroundY = -1.25f;
     constexpr float GroundHalfSize = 5.0f;
     constexpr DirectX::XMFLOAT4 HitFlashColor = {
@@ -30,14 +36,53 @@ namespace
 SlimeControllerComponent::SlimeControllerComponent(
     GameObject& owner,
     GameObject& target,
+    PlayerControllerComponent& targetController,
     UnitVisualComponent& visual,
     UnitHealthComponent& health)
     : Component(owner)
     , target_(target)
+    , targetController_(targetController)
     , visual_(visual)
     , health_(health)
     , previousUpdate_(std::chrono::steady_clock::now())
 {
+}
+
+void SlimeControllerComponent::BeginEscape()
+{
+    if (state_ == State::Escaping || state_ == State::Dying || state_ == State::Hidden)
+        return;
+
+    escapeStart_ = GetOwner().GetTransform().GetPosition();
+    const auto& targetPosition = target_.GetTransform().GetPosition();
+    float directionX = escapeStart_.x - targetPosition.x;
+    float directionZ = escapeStart_.z - targetPosition.z;
+    const float length = std::sqrt(directionX * directionX + directionZ * directionZ);
+    if (length > 0.0001f)
+    {
+        directionX /= length;
+        directionZ /= length;
+    }
+    else
+    {
+        directionX = escapeStart_.x >= 0.0f ? 1.0f : -1.0f;
+        directionZ = 0.25f;
+    }
+
+    escapeEnd_ = {
+        escapeStart_.x + directionX * EscapeDistance,
+        GroundY,
+        escapeStart_.z + directionZ * EscapeDistance
+    };
+    visual_.SetFacingFromHorizontalMovement(directionX);
+    health_.SetCanTakeDamage(false);
+    health_.SetBarVisible(false);
+    visual_.SetHitboxVisible(false);
+    knockbackTimeRemaining_ = 0.0f;
+    hitFlashTimeRemaining_ = 0.0f;
+    visual_.SetFlash(HitFlashColor, 0.0f);
+    state_ = State::Escaping;
+    stateElapsed_ = 0.0f;
 }
 
 void SlimeControllerComponent::StartSpawn(int spawnIndex)
@@ -72,6 +117,7 @@ void SlimeControllerComponent::StartSpawn(int spawnIndex)
     GetOwner().GetTransform().SetPosition(spawnStart_);
     visual_.SetVisible(false);
     visual_.SetDissolveAmount(0.0f);
+    visual_.SetFlash(HitFlashColor, 0.0f);
     visual_.SetHitboxVisible(false);
     visual_.SetShadowVisible(false);
     visual_.SetFacingFromHorizontalMovement(spawnEnd_.x - spawnStart_.x);
@@ -88,6 +134,17 @@ void SlimeControllerComponent::Update()
     if (GameTime::IsHitStopped()) return;
     deltaTime = std::min(deltaTime, 0.05f);
 
+    hitFlashTimeRemaining_ = std::max(0.0f, hitFlashTimeRemaining_ - deltaTime);
+    visual_.SetFlash(HitFlashColor, hitFlashTimeRemaining_ > 0.0f ? 1.0f : 0.0f);
+
+    if (targetController_.HasFullyDisappearedAfterDeath() &&
+        state_ != State::Escaping &&
+        state_ != State::Dying &&
+        state_ != State::Hidden)
+    {
+        BeginEscape();
+    }
+
     if (state_ == State::Dying)
     {
         stateElapsed_ += deltaTime;
@@ -95,6 +152,31 @@ void SlimeControllerComponent::Update()
         if (stateElapsed_ >= deathDuration_)
         {
             visual_.SetVisible(false);
+            visual_.SetFlash(HitFlashColor, 0.0f);
+            state_ = State::Hidden;
+            stateElapsed_ = 0.0f;
+        }
+        return;
+    }
+
+    if (state_ == State::Escaping)
+    {
+        stateElapsed_ += deltaTime;
+        const float t = std::min(stateElapsed_ / EscapeDuration, 1.0f);
+        DirectX::XMFLOAT3 position = {
+            escapeStart_.x + (escapeEnd_.x - escapeStart_.x) * t,
+            GroundY + EscapeArcHeight * 4.0f * t * (1.0f - t),
+            escapeStart_.z + (escapeEnd_.z - escapeStart_.z) * t
+        };
+        GetOwner().GetTransform().SetPosition(position);
+        const bool overGround = std::abs(position.x) <= GroundHalfSize &&
+            std::abs(position.z) <= GroundHalfSize;
+        visual_.SetShadowVisible(overGround);
+        visual_.SyncShadow();
+        if (t >= 1.0f)
+        {
+            visual_.SetVisible(false);
+            visual_.SetShadowVisible(false);
             state_ = State::Hidden;
             stateElapsed_ = 0.0f;
         }
@@ -140,9 +222,7 @@ void SlimeControllerComponent::Update()
         return;
     }
 
-    hitFlashTimeRemaining_ = std::max(0.0f, hitFlashTimeRemaining_ - deltaTime);
     knockbackTimeRemaining_ = std::max(0.0f, knockbackTimeRemaining_ - deltaTime);
-    visual_.SetFlash(HitFlashColor, hitFlashTimeRemaining_ > 0.0f ? 1.0f : 0.0f);
 
     stateElapsed_ += deltaTime;
     const float stateDuration = state_ == State::Chasing ? ChaseDuration : RestDuration;
@@ -194,8 +274,10 @@ void SlimeControllerComponent::ReceiveHit(
         health_.SetCanTakeDamage(false);
         visual_.SetHitboxVisible(false);
         knockbackTimeRemaining_ = 0.0f;
-        visual_.SetFlash(HitFlashColor, 0.0f);
+        hitFlashTimeRemaining_ = HitFlashDuration;
+        visual_.SetFlash(HitFlashColor, 1.0f);
         visual_.PlayAnimation("Die", true);
+        SoundPlayer::Play(SlimeExplodeSoundPath);
         return;
     }
 

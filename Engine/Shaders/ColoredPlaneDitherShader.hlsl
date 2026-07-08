@@ -18,10 +18,12 @@ cbuffer cbDissolve : register(b0)
     float DissolveAmount;
     float HalfWidth;
     float HalfDepth;
-    float DissolvePadding;
+    float UniformDissolve;
     float DissolvePixelWidth;
     float DissolvePixelDepth;
     float2 DissolvePixelPadding;
+    float Opacity;
+    float3 DitherPadding;
 };
 
 struct VS_INPUT
@@ -64,11 +66,13 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
     const float localX = input.LocalPosition.x / (HalfWidth * 2.0) + 0.5;
     const float localY = input.LocalPosition.y / (HalfDepth * 2.0) + 0.5;
     const float diagonalPosition = (localX + localY) * 0.5;
-    const float localDissolve = saturate(
+    const float directionalDissolve = saturate(
         (saturate(DissolveAmount) * 1.35 - diagonalPosition) / 0.35);
+    const float localDissolve =
+        UniformDissolve > 0.5 ? saturate(DissolveAmount) : directionalDissolve;
     const int2 shadowPixel = int2(
         floor((input.LocalPosition.x + HalfWidth) / DissolvePixelWidth),
         floor((input.LocalPosition.y + HalfDepth) / DissolvePixelDepth));
     clip(Bayer4x4(shadowPixel) - localDissolve);
-    return input.Col;
+    return float4(input.Col.rgb, input.Col.a * Opacity);
 }

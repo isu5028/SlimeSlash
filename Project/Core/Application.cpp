@@ -1,4 +1,13 @@
 #include "Application.h"
+#include "SoundPlayer.h"
+
+#include <chrono>
+#include <thread>
+
+namespace
+{
+	constexpr auto TargetFrameDuration = std::chrono::duration<double>(1.0 / 60.0);
+}
 
 bool Application::Initialize(HINSTANCE hInst)
 {
@@ -28,11 +37,23 @@ void Application::Terminate()
 
 bool Application::gameLoop()
 {
+	static auto nextFrameTime =
+		std::chrono::steady_clock::now() + TargetFrameDuration;
+
 	sceneManager_.Update();
+	SoundPlayer::Update();
 	renderer_.Draw();
 	sceneManager_.Draw();
 	renderer_.Swap();
 
-	Sleep(10);
+	std::this_thread::sleep_until(nextFrameTime);
+	nextFrameTime += TargetFrameDuration;
+
+	const auto now = std::chrono::steady_clock::now();
+	if (nextFrameTime < now)
+	{
+		nextFrameTime = now + TargetFrameDuration;
+	}
+
 	return true;
 }

@@ -36,7 +36,7 @@ bool UnitHitboxComponent::Setup(
     {
         const float angle = DirectX::XM_2PI * static_cast<float>(segment) / SegmentCount;
         const float x = std::sin(angle) * radius_;
-        const float z = std::cos(angle) * radius_;
+        const float z = std::cos(angle) * GetDepthRadius();
         vertices[segment * 2 + 0].Position = { x, 0.0f, z };
         vertices[segment * 2 + 1].Position = { x, height_, z };
         vertices[segment * 2 + 0].Color = debugColor;
@@ -81,6 +81,19 @@ bool UnitHitboxComponent::Setup(
     indexData.pSysMem = indices.data();
     return SUCCEEDED(renderer.GetDevice()->CreateBuffer(
         &indexDescription, &indexData, &indexBuffer_));
+}
+
+float UnitHitboxComponent::GetDirectionalRadius(float offsetX, float offsetZ) const
+{
+    const float length = std::sqrt(offsetX * offsetX + offsetZ * offsetZ);
+    if (length <= 0.0001f) return radius_;
+
+    const float directionX = offsetX / length;
+    const float directionZ = offsetZ / length;
+    const float depthRadius = GetDepthRadius();
+    return std::sqrt(
+        radius_ * radius_ * directionX * directionX +
+        depthRadius * depthRadius * directionZ * directionZ);
 }
 
 void UnitHitboxComponent::SetupWorldTransform(Renderer& renderer)

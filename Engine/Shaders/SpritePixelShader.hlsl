@@ -45,6 +45,13 @@ float4 main(PS_INPUT input) : SV_TARGET
         (saturate(DissolveAmount) * 1.35 - diagonalPosition) / 0.35);
     clip(Bayer4x4(sourcePixel) - localDissolve);
 
-    color.rgb = lerp(color.rgb, FlashColor.rgb, saturate(FlashAmount));
+    if (FlashAmount < 0.0f)
+    {
+        color *= FlashColor;
+    }
+    else
+    {
+        color.rgb = lerp(color.rgb, FlashColor.rgb, saturate(FlashAmount));
+    }
     return color;
 }

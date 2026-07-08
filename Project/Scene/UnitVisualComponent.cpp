@@ -46,6 +46,11 @@ void UnitVisualComponent::SetShadowVisible(bool visible)
     shadowRenderer_.SetVisible(visible);
 }
 
+void UnitVisualComponent::SetShadowOffset(float offsetX, float offsetZ)
+{
+    shadowOffset_ = { offsetX, offsetZ };
+}
+
 bool UnitVisualComponent::PlayAnimation(const std::string& tagName, bool restart)
 {
     return sprite_.Play(tagName, restart);
@@ -71,7 +76,7 @@ void UnitVisualComponent::SyncShadow()
 {
     const auto& unitPosition = GetOwner().GetTransform().GetPosition();
     auto shadowPosition = shadow_.GetTransform().GetPosition();
-    shadowPosition.x = unitPosition.x;
-    shadowPosition.z = unitPosition.z;
+    shadowPosition.x = unitPosition.x + shadowOffset_.x;
+    shadowPosition.z = unitPosition.z + shadowOffset_.y;
     shadow_.GetTransform().SetPosition(shadowPosition);
 }

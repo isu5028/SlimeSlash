@@ -33,6 +33,11 @@ public:
         float groundY);
 
     void Update() override;
+    bool HasFullyDisappearedAfterDeath() const;
+    bool ReceiveHazardDamage(
+        const DirectX::XMFLOAT2& knockbackDirection,
+        int damage,
+        const DirectX::XMFLOAT3& impactPosition);
 
 private:
     enum class AnimationState
@@ -49,6 +54,11 @@ private:
     bool IsKeyDown(int virtualKey) const;
     void PlayAnimation(AnimationState state);
     void BeginDeath();
+    bool ApplyDamageReaction(
+        int damage,
+        const DirectX::XMFLOAT2& knockbackDirection,
+        const DirectX::XMFLOAT3& impactPosition);
+    void StartDash();
     void StartAttack(int comboStage);
     bool TryHitAttackTargets(int comboStage);
     bool TryHitAttackTarget(EnemyTarget& target, int comboStage);
@@ -76,6 +86,7 @@ private:
     float deathAnimationTimeRemaining_ = 0.0f;
     float deathDissolveDelayRemaining_ = 0.0f;
     float dashElapsed_ = 0.0f;
+    float dashCooldownRemaining_ = 0.0f;
     float dashSpinDirection_ = 1.0f;
     DirectX::XMFLOAT2 facingDirection_ = { 0.0f, 1.0f };
     DirectX::XMFLOAT2 dashDirection_ = { 0.0f, 1.0f };
@@ -87,6 +98,7 @@ private:
     bool previousJumpKey_ = false;
     bool previousAttackKey_ = false;
     bool bufferedAttack_ = false;
+    bool bufferedDash_ = false;
     bool previousDashKey_ = false;
     bool airDashUsed_ = false;
     bool dead_ = false;

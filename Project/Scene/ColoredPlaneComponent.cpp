@@ -85,7 +85,7 @@ bool ColoredPlaneComponent::CreateDitherResources(Renderer& renderer)
     {
         ShareShader(sharedDitherShader, ditherShader_);
         D3D11_BUFFER_DESC description = {};
-        description.ByteWidth = 32;
+        description.ByteWidth = 48;
         description.Usage = D3D11_USAGE_DYNAMIC;
         description.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -134,7 +134,7 @@ bool ColoredPlaneComponent::CreateDitherResources(Renderer& renderer)
     ShareShader(ditherShader_, sharedDitherShader);
 
     D3D11_BUFFER_DESC description = {};
-    description.ByteWidth = 32;
+    description.ByteWidth = 48;
     description.Usage = D3D11_USAGE_DYNAMIC;
     description.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -150,6 +150,11 @@ void ColoredPlaneComponent::SetDissolvePixelSize(float width, float depth)
 {
     dissolvePixelWidth_ = std::max(width, 0.0001f);
     dissolvePixelDepth_ = std::max(depth, 0.0001f);
+}
+
+void ColoredPlaneComponent::SetOpacity(float opacity)
+{
+    opacity_ = std::max(0.0f, std::min(opacity, 1.0f));
 }
 
 void ColoredPlaneComponent::SetupWorldTransform(Renderer& renderer)
@@ -183,10 +188,15 @@ void ColoredPlaneComponent::Draw(Renderer& renderer)
         ditherBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &ditherMapped)))
     {
         const float data[8] = {
-            dissolveAmount_, halfWidth_, halfDepth_, 0.0f,
+            dissolveAmount_, halfWidth_, halfDepth_, uniformDissolve_ ? 1.0f : 0.0f,
             dissolvePixelWidth_, dissolvePixelDepth_, 0.0f, 0.0f
         };
-        CopyMemory(ditherMapped.pData, data, sizeof(data));
+        const float extendedData[12] = {
+            data[0], data[1], data[2], data[3],
+            data[4], data[5], data[6], data[7],
+            opacity_, 0.0f, 0.0f, 0.0f
+        };
+        CopyMemory(ditherMapped.pData, extendedData, sizeof(extendedData));
         context->Unmap(ditherBuffer_, 0);
         context->PSSetConstantBuffers(0, 1, &ditherBuffer_);
     }

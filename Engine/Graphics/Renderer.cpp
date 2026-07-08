@@ -110,8 +110,8 @@ bool Renderer::initDeviceAndSwapChain(HWND hWindow)
     sd.BufferDesc.Scaling = DXGI_MODE_SCALING_CENTERED;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // バックバッファの使用法
     sd.OutputWindow = hWindow; // 関連付けるウィンドウ
-    sd.SampleDesc.Count = 1; // マルチサンプル（アンチエイリアス）の数
-    sd.SampleDesc.Quality = 0; // マルチサンプル（アンチエイリアス）のクオリティ
+    sd.SampleDesc.Count = 1; // アンチエイリアス数
+    sd.SampleDesc.Quality = 0; // アンチエイリアスのクオリティ
     sd.Windowed = TRUE; // ウィンドウモード
     sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // モード自動切換え
 

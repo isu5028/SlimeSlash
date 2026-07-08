@@ -5,6 +5,8 @@
 class UnitHitboxComponent : public Component
 {
 public:
+    static constexpr float DepthRadiusScale = 0.5f;
+
     explicit UnitHitboxComponent(GameObject& owner);
     ~UnitHitboxComponent() override;
 
@@ -17,7 +19,9 @@ public:
     void Draw(Renderer& renderer) override;
 
     float GetRadius() const { return radius_; }
+    float GetDepthRadius() const { return radius_ * DepthRadiusScale; }
     float GetHeight() const { return height_; }
+    float GetDirectionalRadius(float offsetX, float offsetZ) const;
     void SetUnitVisible(bool visible) { unitVisible_ = visible; }
 
 private:

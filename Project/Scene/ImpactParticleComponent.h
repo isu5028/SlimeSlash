@@ -20,7 +20,9 @@ public:
         const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT2& direction,
         bool strong,
-        const DirectX::XMFLOAT4& color);
+        const DirectX::XMFLOAT4& color,
+        float sizeScale = 1.0f,
+        int countOverride = -1);
     void Update() override;
     void Draw(Renderer& renderer) override;
 
