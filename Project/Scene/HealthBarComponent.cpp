@@ -132,3 +132,12 @@ void HealthBarComponent::Draw(Renderer& renderer)
         if (layer) layer->Draw(renderer);
     }
 }
+
+void HealthBarComponent::SetFadeAlpha(float alpha)
+{
+    fadeAlpha_ = std::max(0.0f, std::min(alpha, 1.0f));
+    for (auto& layer : layers_)
+    {
+        if (layer) layer->SetOpacity(fadeAlpha_);
+    }
+}

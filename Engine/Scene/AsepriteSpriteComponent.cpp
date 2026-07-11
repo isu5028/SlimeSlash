@@ -344,6 +344,11 @@ void AsepriteSpriteComponent::SetDissolveAmount(float amount)
     dissolveAmount_ = std::max(0.0f, std::min(amount, 1.0f));
 }
 
+void AsepriteSpriteComponent::SetOpacity(float opacity)
+{
+    opacity_ = std::max(0.0f, std::min(opacity, 1.0f));
+}
+
 void AsepriteSpriteComponent::Update()
 {
     if (!initialized_ || data_.frames.empty()) return;
@@ -499,7 +504,7 @@ void AsepriteSpriteComponent::Draw(Renderer& renderer)
             flashAmount_, dissolveAmount_, 0.0f, 0.0f,
             static_cast<float>(data_.width),
             static_cast<float>(data_.width * data_.frames.size()),
-            static_cast<float>(data_.height), 0.0f
+            static_cast<float>(data_.height), opacity_
         };
         std::memcpy(colorMapped.pData, colorData, sizeof(colorData));
         context->Unmap(colorBuffer_, 0);

@@ -2,6 +2,8 @@
 
 #include "Component.h"
 #include "EnemyTarget.h"
+#include "PlayerCombatResolver.h"
+#include "InputManager.h"
 
 #include <chrono>
 #include <vector>
@@ -22,6 +24,7 @@ class PlayerControllerComponent : public Component
 public:
     PlayerControllerComponent(
         GameObject& owner,
+        InputManager& input,
         Camera& camera,
         ImpactParticleComponent& impactParticles,
         AsepriteSpriteComponent& sprite,
@@ -38,6 +41,15 @@ public:
         const DirectX::XMFLOAT2& knockbackDirection,
         int damage,
         const DirectX::XMFLOAT3& impactPosition);
+    void SetInputEnabled(bool enabled);
+    void BeginStageIntro(
+        const DirectX::XMFLOAT3& startPosition,
+        const DirectX::XMFLOAT3& landingPosition,
+        float duration,
+        float arcHeight);
+    bool IsStageIntroActive() const { return stageIntroActive_; }
+    bool IsDead() const { return dead_; }
+    bool IsDeathDissolving() const;
 
 private:
     enum class AnimationState
@@ -51,7 +63,6 @@ private:
         Die,
     };
 
-    bool IsKeyDown(int virtualKey) const;
     void PlayAnimation(AnimationState state);
     void BeginDeath();
     bool ApplyDamageReaction(
@@ -60,18 +71,17 @@ private:
         const DirectX::XMFLOAT3& impactPosition);
     void StartDash();
     void StartAttack(int comboStage);
-    bool TryHitAttackTargets(int comboStage);
-    bool TryHitAttackTarget(EnemyTarget& target, int comboStage);
     bool TryTakeContactDamage(const DirectX::XMFLOAT3& position);
 
     AsepriteSpriteComponent& sprite_;
+    InputManager& input_;
     Camera& camera_;
     ImpactParticleComponent& impactParticles_;
     UnitVisualComponent& visual_;
     UnitHitboxComponent& hitbox_;
     UnitHealthComponent& health_;
     SlashAttackEffectComponent& attackEffect_;
-    std::vector<EnemyTarget>& attackTargets_;
+    PlayerCombatResolver combatResolver_;
     float groundY_ = 0.0f;
     float verticalVelocity_ = 0.0f;
     float jumpHoldTime_ = 0.0f;
@@ -95,12 +105,16 @@ private:
     int nextAttackStage_ = 1;
     bool grounded_ = true;
     bool dashing_ = false;
-    bool previousJumpKey_ = false;
-    bool previousAttackKey_ = false;
     bool bufferedAttack_ = false;
     bool bufferedDash_ = false;
-    bool previousDashKey_ = false;
     bool airDashUsed_ = false;
     bool dead_ = false;
+    bool inputEnabled_ = true;
+    bool stageIntroActive_ = false;
+    float stageIntroDuration_ = 0.0f;
+    float stageIntroElapsed_ = 0.0f;
+    float stageIntroArcHeight_ = 0.0f;
+    DirectX::XMFLOAT3 stageIntroStart_ = {};
+    DirectX::XMFLOAT3 stageIntroLanding_ = {};
     std::chrono::steady_clock::time_point previousUpdate_;
 };

@@ -23,6 +23,7 @@ bool Renderer::Initialize(HWND hWindow)
     if (!initDeviceAndSwapChain(hWindow)) return false;
     if (!initBackBuffer()) return false;
     if (!CompileShader(L"Engine/Shaders/VertexShader.hlsl", L"Engine/Shaders/PixelShader.hlsl", defaultShader_)) return false;
+    if (!initAnimatedBackground()) return false;
     if (!renderParam_.Initialize(*this)) return false;
     if (!setupProjectionTransform()) return false;
 
@@ -217,6 +218,8 @@ void Renderer::Draw()
     FLOAT BlendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
     pImmediateContext_->OMSetBlendState(pBlendState_, BlendFactor, 0xffffffff);
 
+    drawAnimatedBackground();
+
     ApplyDefaultPipeline();
 }
 
@@ -248,6 +251,8 @@ void Renderer::Terminate()
     // スワップチェインをウィンドウモードにする
     if(pSwapChain_) pSwapChain_->SetFullscreenState(FALSE, nullptr);
 
+    DX_SAFE_RELEASE(pBackgroundBuffer_);
+
     // 取得したインターフェイスの開放
     DX_SAFE_RELEASE(pRenderTargetView_);
     DX_SAFE_RELEASE(pSwapChain_);
@@ -255,6 +260,66 @@ void Renderer::Terminate()
 
     DX_SAFE_RELEASE(pImmediateContext_);
     DX_SAFE_RELEASE(pD3DDevice_);
+}
+
+bool Renderer::initAnimatedBackground()
+{
+    ID3DBlob* vertexBlob = nullptr;
+    ID3DBlob* pixelBlob = nullptr;
+    const std::wstring path = AssetPack::ResolvePath(L"Engine/Shaders/AnimatedBackgroundShader.hlsl");
+    const UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+    HRESULT result = D3DCompileFromFile(path.c_str(), nullptr,
+        D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_4_0", flags, 0,
+        &vertexBlob, nullptr);
+    if (SUCCEEDED(result)) result = D3DCompileFromFile(path.c_str(), nullptr,
+        D3D_COMPILE_STANDARD_FILE_INCLUDE, "PSMain", "ps_4_0", flags, 0,
+        &pixelBlob, nullptr);
+    if (SUCCEEDED(result)) result = pD3DDevice_->CreateVertexShader(
+        vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), nullptr,
+        &backgroundShader_.pVertexShader);
+    if (SUCCEEDED(result)) result = pD3DDevice_->CreatePixelShader(
+        pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), nullptr,
+        &backgroundShader_.pPixelShader);
+    DX_SAFE_RELEASE(vertexBlob);
+    DX_SAFE_RELEASE(pixelBlob);
+    if (FAILED(result)) return false;
+
+    D3D11_BUFFER_DESC description = {};
+    description.ByteWidth = 48;
+    description.Usage = D3D11_USAGE_DYNAMIC;
+    description.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    if (FAILED(pD3DDevice_->CreateBuffer(&description, nullptr, &pBackgroundBuffer_)))
+        return false;
+    backgroundStartTime_ = std::chrono::steady_clock::now();
+    return true;
+}
+
+void Renderer::drawAnimatedBackground()
+{
+    if (!pBackgroundBuffer_ || !backgroundShader_.pVertexShader) return;
+
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    if (FAILED(pImmediateContext_->Map(
+        pBackgroundBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) return;
+
+    const float time = std::chrono::duration<float>(
+        std::chrono::steady_clock::now() - backgroundStartTime_).count();
+    // Muted ink and warm coral: deliberately only these two output colors.
+    const float parameters[12] = {
+        time, static_cast<float>(screenWidth_), static_cast<float>(screenHeight_), 0.0f,
+        0.32f, 0.22f, 0.29f, 1.0f,
+        0.52f, 0.36f, 0.40f, 1.0f
+    };
+    CopyMemory(mapped.pData, parameters, sizeof(parameters));
+    pImmediateContext_->Unmap(pBackgroundBuffer_, 0);
+
+    pImmediateContext_->IASetInputLayout(nullptr);
+    pImmediateContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pImmediateContext_->VSSetShader(backgroundShader_.pVertexShader, nullptr, 0);
+    pImmediateContext_->PSSetShader(backgroundShader_.pPixelShader, nullptr, 0);
+    pImmediateContext_->PSSetConstantBuffers(0, 1, &pBackgroundBuffer_);
+    pImmediateContext_->Draw(3, 0);
 }
 
 bool Renderer::CompileShader(const WCHAR* vsPath, const WCHAR* psPath, Shader& outShader)

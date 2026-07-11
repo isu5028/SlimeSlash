@@ -22,7 +22,7 @@ public:
 
     void Update() override;
     void ReceiveHit(const DirectX::XMFLOAT2& direction, float knockbackSpeed) override;
-    void StartSpawn(int spawnIndex);
+    void StartSpawn(int spawnIndex, int spawnLocationIndex = -1) override;
     bool IsDefeated() const { return state_ == State::Hidden; }
 
 private:

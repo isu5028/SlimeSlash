@@ -12,10 +12,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Create-Distribution.ps1
 
 This creates `dist/CubeGame` and copies:
 
-- `CubeGame.exe`
+- `Slime Slash Slayer.exe`
 - `assets.pack`
 
-If `CubeGame.exe` still depends on `assimp-vc142-mt.dll`, the script also copies that DLL automatically.
+If `Slime Slash Slayer.exe` still depends on `assimp-vc142-mt.dll`, the script also copies that DLL automatically.
 
 ## Common options
 
@@ -40,7 +40,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Create-Distribution.ps1 -Outp
 ## What the script does
 
 1. Builds `Release|x64` with `MSBuild` unless `-SkipBuild` is specified.
-2. Copies `CubeGame.exe` from `x64/Release`.
+2. Copies `Slime Slash Slayer.exe` from `x64/Release`.
 3. Checks the executable dependencies and copies `assimp-vc142-mt.dll` only when it is actually required.
 4. Builds `assets.pack` from the aseprite files, shader files, and sound files used by the game.
 

@@ -5,6 +5,7 @@
 #include "Shader.h"
 #include "Triangle.h"
 #include "RenderParam.h"
+#include <chrono>
 
 class Renderer
 {
@@ -28,6 +29,8 @@ private:
     bool initDeviceAndSwapChain(HWND hWindow);
     bool initBackBuffer();
     bool setupProjectionTransform();
+    bool initAnimatedBackground();
+    void drawAnimatedBackground();
 
     //! 機能レベルの配列
     static const UINT FEATURE_LEVELS_NUM = 4;
@@ -56,6 +59,9 @@ private:
     D3D11_VIEWPORT viewPort_[1];
 
     Shader defaultShader_;
+    Shader backgroundShader_;
+    ID3D11Buffer* pBackgroundBuffer_ = nullptr;
+    std::chrono::steady_clock::time_point backgroundStartTime_;
     Triangle sampleTriangle_;
 
     UINT backBufferNum_ = 3;

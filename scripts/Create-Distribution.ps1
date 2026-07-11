@@ -64,7 +64,9 @@ if (-not $SkipBuild) {
     }
 }
 
-$exePath = Join-Path $buildOutputDir "CubeGame.exe"
+$exeName = "Slime Slash Slayer.exe"
+$pdbName = "Slime Slash Slayer.pdb"
+$exePath = Join-Path $buildOutputDir $exeName
 if (-not (Test-Path $exePath)) {
     throw "Required build output was not found: $exePath"
 }
@@ -82,12 +84,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "Failed to inspect executable dependencies."
 }
 
-$copiedRuntimeFiles = @("CubeGame.exe")
+$copiedRuntimeFiles = @($exeName)
 
 if ($dependencies -match 'assimp-vc142-mt\.dll') {
     $assimpDllPath = Join-Path $buildOutputDir "assimp-vc142-mt.dll"
     if (-not (Test-Path $assimpDllPath)) {
-        throw "CubeGame.exe depends on assimp-vc142-mt.dll, but the DLL was not found."
+        throw "$exeName depends on assimp-vc142-mt.dll, but the DLL was not found."
     }
 
     Copy-Item -Path $assimpDllPath -Destination $OutputDir -Force
@@ -95,10 +97,10 @@ if ($dependencies -match 'assimp-vc142-mt\.dll') {
 }
 
 if ($IncludePdb) {
-    $pdbPath = Join-Path $buildOutputDir "CubeGame.pdb"
+    $pdbPath = Join-Path $buildOutputDir $pdbName
     if (Test-Path $pdbPath) {
         Copy-Item -Path $pdbPath -Destination $OutputDir -Force
-        $copiedRuntimeFiles += "CubeGame.pdb"
+        $copiedRuntimeFiles += $pdbName
     }
 }
 

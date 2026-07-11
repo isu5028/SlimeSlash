@@ -53,5 +53,6 @@ float4 main(PS_INPUT input) : SV_TARGET
     {
         color.rgb = lerp(color.rgb, FlashColor.rgb, saturate(FlashAmount));
     }
+    color.a *= DissolveTextureSize.w;
     return color;
 }

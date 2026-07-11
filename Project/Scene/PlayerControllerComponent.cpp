@@ -35,8 +35,6 @@ namespace
     constexpr DirectX::XMFLOAT4 DamageFlashColor = {
         0.45490196f, 0.27843139f, 0.23921569f, 1.0f
     };
-    constexpr float NormalHitShakeStrength = 0.08f;
-    constexpr float StrongHitShakeStrength = 0.18f;
     constexpr float PlayerDamageShakeStrength = 0.24f;
     constexpr const wchar_t* AttackHitSoundPaths[] = {
         L"Project/Assets/Sounds/PlayerAttackHit.wav",
@@ -76,6 +74,7 @@ namespace
 
 PlayerControllerComponent::PlayerControllerComponent(
     GameObject& owner,
+    InputManager& input,
     Camera& camera,
     ImpactParticleComponent& impactParticles,
     AsepriteSpriteComponent& sprite,
@@ -86,6 +85,7 @@ PlayerControllerComponent::PlayerControllerComponent(
     std::vector<EnemyTarget>& attackTargets,
     float groundY)
     : Component(owner)
+    , input_(input)
     , camera_(camera)
     , impactParticles_(impactParticles)
     , sprite_(sprite)
@@ -93,7 +93,7 @@ PlayerControllerComponent::PlayerControllerComponent(
     , hitbox_(hitbox)
     , health_(health)
     , attackEffect_(attackEffect)
-    , attackTargets_(attackTargets)
+    , combatResolver_(attackTargets, impactParticles)
     , groundY_(groundY)
     , previousUpdate_(std::chrono::steady_clock::now())
 {
@@ -106,9 +106,9 @@ bool PlayerControllerComponent::HasFullyDisappearedAfterDeath() const
         deathAnimationTimeRemaining_ <= 0.0f;
 }
 
-bool PlayerControllerComponent::IsKeyDown(int virtualKey) const
+bool PlayerControllerComponent::IsDeathDissolving() const
 {
-    return (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+    return dead_ && deathDissolveDelayRemaining_ <= 0.0f;
 }
 
 void PlayerControllerComponent::PlayAnimation(AnimationState state)
@@ -246,6 +246,44 @@ bool PlayerControllerComponent::ReceiveHazardDamage(
     return ApplyDamageReaction(damage, knockbackDirection, impactPosition);
 }
 
+void PlayerControllerComponent::SetInputEnabled(bool enabled)
+{
+    inputEnabled_ = enabled;
+    if (!inputEnabled_)
+    {
+        bufferedAttack_ = false;
+        bufferedDash_ = false;
+    }
+}
+
+void PlayerControllerComponent::BeginStageIntro(
+    const DirectX::XMFLOAT3& startPosition,
+    const DirectX::XMFLOAT3& landingPosition,
+    float duration,
+    float arcHeight)
+{
+    stageIntroActive_ = true;
+    stageIntroStart_ = startPosition;
+    stageIntroLanding_ = landingPosition;
+    stageIntroDuration_ = std::max(duration, 0.0001f);
+    stageIntroElapsed_ = 0.0f;
+    stageIntroArcHeight_ = std::max(arcHeight, 0.0f);
+    grounded_ = false;
+    dashing_ = false;
+    verticalVelocity_ = 0.0f;
+    jumpHoldTime_ = 0.0f;
+    airDashUsed_ = false;
+    attackAnimationTimeRemaining_ = 0.0f;
+    damageKnockbackTimeRemaining_ = 0.0f;
+    GetOwner().GetTransform().SetPosition(startPosition);
+
+    const float moveX = landingPosition.x - startPosition.x;
+    if (std::abs(moveX) > 0.0001f)
+    {
+        visual_.SetFacingFromHorizontalMovement(moveX);
+    }
+}
+
 void PlayerControllerComponent::StartDash()
 {
     SoundPlayer::Play(L"Project/Assets/Sounds/Dash.wav");
@@ -264,7 +302,8 @@ void PlayerControllerComponent::StartAttack(int comboStage)
 {
     damageAnimationTimeRemaining_ = 0.0f;
     attackEffect_.Trigger(facingDirection_, comboStage);
-    const bool hit = TryHitAttackTargets(comboStage);
+    const bool hit = combatResolver_.ResolveAttack(
+        GetOwner().GetTransform().GetPosition(), facingDirection_, comboStage, camera_);
     SoundPlayer::Play(GetAttackSoundPath(hit, comboStage));
     attackAnimationTimeRemaining_ = sprite_.GetAnimationDurationSeconds("Attack");
     sprite_.Play("Attack", true);
@@ -291,113 +330,15 @@ void PlayerControllerComponent::StartAttack(int comboStage)
     }
 }
 
-bool PlayerControllerComponent::TryHitAttackTargets(int comboStage)
-{
-    bool hit = false;
-    for (auto& target : attackTargets_)
-    {
-        hit = TryHitAttackTarget(target, comboStage) || hit;
-    }
-    return hit;
-}
-
-bool PlayerControllerComponent::TryHitAttackTarget(
-    EnemyTarget& target, int comboStage)
-{
-    if (!target.object || !target.hitbox || !target.health ||
-        !target.hitReceiver || !target.health->CanTakeDamage()) return false;
-    const auto& playerPosition = GetOwner().GetTransform().GetPosition();
-    const auto& targetPosition = target.object->GetTransform().GetPosition();
-    const float offsetX = targetPosition.x - playerPosition.x;
-    const float offsetZ = targetPosition.z - playerPosition.z;
-    const float distance = std::sqrt(offsetX * offsetX + offsetZ * offsetZ);
-    const float distanceToHitbox = std::max(
-        0.0f, distance - target.hitbox->GetDirectionalRadius(offsetX, offsetZ));
-    if (distance <= 0.0001f ||
-        distanceToHitbox > AttackSettings::GetHitRange(comboStage)) return false;
-
-    const float targetDirectionX = offsetX / distance;
-    const float targetDirectionZ = offsetZ / distance;
-    const float facingDot =
-        targetDirectionX * facingDirection_.x + targetDirectionZ * facingDirection_.y;
-    if (facingDot < AttackSettings::GetHitMinimumDot(comboStage)) return false;
-
-    const float attackBottom = playerPosition.y + AttackSettings::HitBottomOffset;
-    const float attackTop = playerPosition.y + AttackSettings::HitTopOffset;
-    const float targetBottom = targetPosition.y;
-    const float targetTop = targetPosition.y + target.hitbox->GetHeight();
-    if (attackTop < targetBottom || attackBottom > targetTop) return false;
-
-    const int damage = comboStage == 1 ? 2 : comboStage == 2 ? 3 : 5;
-    if (!target.health->Damage(damage)) return false;
-
-    const float knockbackSpeed =
-        comboStage == 1 ? 2.f : comboStage == 2 ? 3.f : 8.f;
-    target.hitReceiver->ReceiveHit(facingDirection_, knockbackSpeed);
-    if (target.emitsHitEffect)
-    {
-        auto impactPosition = targetPosition;
-        impactPosition.y += target.hitbox->GetHeight() * 0.55f;
-        impactParticles_.Emit(
-            impactPosition, facingDirection_, comboStage == 3,
-            target.hitEffectColor, target.hitEffectSizeScale,
-            target.hitEffectCountOverride);
-    }
-    if (comboStage == 3)
-    {
-        camera_.TriggerShake(facingDirection_, StrongHitShakeStrength, 0.34f, true);
-        GameTime::StartHitStop(0.08f);
-    }
-    else
-    {
-        camera_.TriggerShake(facingDirection_, NormalHitShakeStrength, 0.08f);
-    }
-    return true;
-}
-
 bool PlayerControllerComponent::TryTakeContactDamage(const DirectX::XMFLOAT3& position)
 {
     if (dashing_) return false;
     if (damageInvulnerabilityTimeRemaining_ > 0.0f) return false;
-
-    EnemyTarget* contactTarget = nullptr;
-    float contactDistanceSquared = 0.0f;
-    for (auto& target : attackTargets_)
-    {
-        if (!target.object || !target.hitbox || !target.health ||
-            !target.health->CanTakeDamage() || !target.causesContactDamage) continue;
-        auto* contactHitbox = target.contactHitbox ? target.contactHitbox : target.hitbox;
-        const auto& targetPosition = target.object->GetTransform().GetPosition();
-        const float offsetX = position.x - targetPosition.x;
-        const float offsetZ = position.z - targetPosition.z;
-        const float depthScale = 1.0f / UnitHitboxComponent::DepthRadiusScale;
-        const float scaledOffsetZ = offsetZ * depthScale;
-        const float distanceSquared = offsetX * offsetX + scaledOffsetZ * scaledOffsetZ;
-        const float contactRadius = hitbox_.GetRadius() + contactHitbox->GetRadius();
-        const float playerTop = position.y + hitbox_.GetHeight();
-        const float targetTop = targetPosition.y + contactHitbox->GetHeight();
-        if (distanceSquared > contactRadius * contactRadius ||
-            playerTop < targetPosition.y || position.y > targetTop) continue;
-        if (!contactTarget || distanceSquared < contactDistanceSquared)
-        {
-            contactTarget = &target;
-            contactDistanceSquared = distanceSquared;
-        }
-    }
-    if (!contactTarget) return false;
-
-    const auto& targetPosition = contactTarget->object->GetTransform().GetPosition();
-    const float offsetX = position.x - targetPosition.x;
-    const float offsetZ = position.z - targetPosition.z;
-    const float distance = std::sqrt(contactDistanceSquared);
-    DirectX::XMFLOAT2 knockbackDirection = { -facingDirection_.x, -facingDirection_.y };
-    if (distance > 0.0001f)
-    {
-        knockbackDirection = { offsetX / distance, offsetZ / distance };
-    }
+    PlayerCombatResolver::Contact contact;
+    if (!combatResolver_.FindContact(position, facingDirection_, hitbox_, contact)) return false;
     auto impactPosition = position;
     impactPosition.y += hitbox_.GetHeight() * 0.55f;
-    return ApplyDamageReaction(2, knockbackDirection, impactPosition);
+    return ApplyDamageReaction(2, contact.knockbackDirection, impactPosition);
 }
 
 void PlayerControllerComponent::Update()
@@ -429,6 +370,42 @@ void PlayerControllerComponent::Update()
         visual_.SetDissolveAmount(
             1.0f - deathAnimationTimeRemaining_ / deathDuration);
         if (deathAnimationTimeRemaining_ <= 0.0f) visual_.SetVisible(false);
+        return;
+    }
+
+    if (stageIntroActive_)
+    {
+        stageIntroElapsed_ = std::min(stageIntroElapsed_ + deltaTime, stageIntroDuration_);
+        const float t = stageIntroElapsed_ / stageIntroDuration_;
+        auto position = stageIntroStart_;
+        position.x += (stageIntroLanding_.x - stageIntroStart_.x) * t;
+        position.z += (stageIntroLanding_.z - stageIntroStart_.z) * t;
+        position.y = stageIntroLanding_.y + stageIntroArcHeight_ * 4.0f * t * (1.0f - t);
+        auto rotation = GetOwner().GetTransform().GetRotation();
+        rotation.z = 0.0f;
+        GetOwner().GetTransform().SetPosition(position);
+        GetOwner().GetTransform().SetRotation(rotation);
+        visual_.SyncShadow();
+
+        if (t < 0.5f)
+        {
+            PlayAnimation(AnimationState::Jump);
+        }
+        else
+        {
+            PlayAnimation(AnimationState::Fall);
+        }
+
+        if (stageIntroElapsed_ >= stageIntroDuration_)
+        {
+            stageIntroActive_ = false;
+            grounded_ = true;
+            verticalVelocity_ = 0.0f;
+            GetOwner().GetTransform().SetPosition(stageIntroLanding_);
+            visual_.SyncShadow();
+            PlayAnimation(AnimationState::Idle);
+        }
+
         return;
     }
 
@@ -468,10 +445,13 @@ void PlayerControllerComponent::Update()
     // WASDと矢印キーを同じ方向入力として扱う。
     float moveX = 0.0f;
     float moveZ = 0.0f;
-    if (IsKeyDown('A') || IsKeyDown(VK_LEFT))  moveX -= 1.0f;
-    if (IsKeyDown('D') || IsKeyDown(VK_RIGHT)) moveX += 1.0f;
-    if (IsKeyDown('W') || IsKeyDown(VK_UP))    moveZ += 1.0f;
-    if (IsKeyDown('S') || IsKeyDown(VK_DOWN))  moveZ -= 1.0f;
+    if (inputEnabled_)
+    {
+        if (input_.IsAnyDown('A', VK_LEFT))  moveX -= 1.0f;
+        if (input_.IsAnyDown('D', VK_RIGHT)) moveX += 1.0f;
+        if (input_.IsAnyDown('W', VK_UP))    moveZ += 1.0f;
+        if (input_.IsAnyDown('S', VK_DOWN))  moveZ -= 1.0f;
+    }
 
     // 斜め移動だけ速くならないよう、方向ベクトルを正規化する。
     const float moveLength = std::sqrt(moveX * moveX + moveZ * moveZ);
@@ -493,10 +473,8 @@ void PlayerControllerComponent::Update()
     }
 
     // 10x10の地面からプレイヤーが外へ出ないようにする。
-    const bool jumpKey = IsKeyDown(VK_SPACE);
-    const bool attackKey = IsKeyDown('J') || IsKeyDown('Z');
-    const bool dashKey = IsKeyDown(VK_SHIFT) || IsKeyDown('K');
-    const bool dashPressed = dashKey && !previousDashKey_;
+    const bool jumpKey = inputEnabled_ && input_.IsDown(VK_SPACE);
+    const bool dashPressed = inputEnabled_ && input_.WasAnyPressed(VK_SHIFT, 'K');
 
     const bool canStartDash = grounded_ || !airDashUsed_;
     if (dashPressed && !dashing_ && !beingKnockedBack && canStartDash)
@@ -548,7 +526,8 @@ void PlayerControllerComponent::Update()
     }
 
     // Spaceを押した瞬間だけジャンプを開始する。着地までは再ジャンプできない。
-    if (jumpKey && !previousJumpKey_ && grounded_ && !dashing_ && !beingKnockedBack)
+    if (inputEnabled_ && input_.WasPressed(VK_SPACE) &&
+        grounded_ && !dashing_ && !beingKnockedBack)
     {
         SoundPlayer::Play(L"Project/Assets/Sounds/Jump.wav");
         grounded_ = false;
@@ -566,7 +545,7 @@ void PlayerControllerComponent::Update()
     }
 
     // Releasing early sharply cuts upward momentum, making tap and hold jumps distinct.
-    if (!grounded_ && !dashing_ && !jumpKey && previousJumpKey_ &&
+    if (!grounded_ && !dashing_ && inputEnabled_ && input_.WasReleased(VK_SPACE) &&
         verticalVelocity_ > 0.0f && jumpHoldTime_ < MaximumJumpHoldTime)
     {
         verticalVelocity_ *= JumpReleaseVelocityMultiplier;
@@ -603,7 +582,7 @@ void PlayerControllerComponent::Update()
     // Lethal contact starts Die above; normal animation selection must not overwrite it.
     if (dead_) return;
 
-    const bool attackPressed = attackKey && !previousAttackKey_;
+    const bool attackPressed = inputEnabled_ && input_.WasAnyPressed('J', 'Z');
     if (attackPressed && damageActionLockTimeRemaining_ <= 0.0f)
     {
         if (attackCooldownRemaining_ <= 0.0f)
@@ -655,7 +634,4 @@ void PlayerControllerComponent::Update()
         PlayAnimation(AnimationState::Idle);
     }
 
-    previousJumpKey_ = jumpKey;
-    previousAttackKey_ = attackKey;
-    previousDashKey_ = dashKey;
 }

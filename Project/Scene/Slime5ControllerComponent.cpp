@@ -59,7 +59,6 @@ namespace
     constexpr float KnockbackDuration = 0.24f;
     constexpr float ShakeAmplitude = 0.12f;
     constexpr float ShakeFrequency = 48.0f;
-    constexpr float DeathHitStopDuration = 0.20f;
     constexpr float DeathEffectInterval = 0.225f;
     constexpr int DeathEffectCount = 8;
     constexpr float DeathEffectSequencePadding = 0.08f;
@@ -131,18 +130,15 @@ Slime5ControllerComponent::Slime5ControllerComponent(
     , visual_(visual)
     , health_(health)
     , chargeParticles_(chargeParticles)
-    , telegraphArea_(telegraphArea)
-    , telegraphRenderer_(telegraphRenderer)
-    , radialTelegraphArea_(radialTelegraphArea)
-    , radialTelegraphRenderer_(radialTelegraphRenderer)
+    , telegraph_(telegraphArea, telegraphRenderer, radialTelegraphArea, radialTelegraphRenderer)
     , queueDamageFloorSpawn_(std::move(queueDamageFloorSpawn))
     , spawnJumpShards_(std::move(spawnJumpShards))
     , spawnDeathHitEffect_(std::move(spawnDeathHitEffect))
     , triggerJumpImpactShake_(std::move(triggerJumpImpactShake))
     , previousUpdate_(std::chrono::steady_clock::now())
 {
-    HideTelegraph();
-    HideRadialTelegraph();
+    telegraph_.HideLinear();
+    telegraph_.HideRadial();
 }
 
 DirectX::XMFLOAT2 Slime5ControllerComponent::GetDirectionAwayFromPlayer()
@@ -182,61 +178,6 @@ void Slime5ControllerComponent::EmitChargeBurst(int count, float speedScale, flo
         speedScale,
         sizeScale,
         ChargeParticleColor);
-}
-
-void Slime5ControllerComponent::HideTelegraph()
-{
-    telegraphRenderer_.SetVisible(false);
-}
-
-void Slime5ControllerComponent::HideRadialTelegraph()
-{
-    radialTelegraphRenderer_.SetVisible(false);
-}
-
-void Slime5ControllerComponent::UpdateTelegraph(
-    const DirectX::XMFLOAT3& position,
-    const DirectX::XMFLOAT2& direction,
-    float lengthScale)
-{
-    const float clampedScale = std::max(0.0f, std::min(lengthScale, 1.0f));
-    if (clampedScale <= 0.0f)
-    {
-        HideTelegraph();
-        return;
-    }
-
-    const float length = DashDistance * clampedScale;
-    const float yaw = std::atan2(direction.x, direction.y);
-    telegraphArea_.GetTransform().SetPosition({
-        position.x + direction.x * (length * 0.5f),
-        TelegraphHeight,
-        position.z + TelegraphAnchorOffsetZ + direction.y * (length * 0.5f)
-    });
-    telegraphArea_.GetTransform().SetRotation({ 0.0f, yaw, 0.0f });
-    telegraphArea_.GetTransform().SetScale({ TelegraphWidth, 1.0f, length });
-    telegraphRenderer_.SetVisible(true);
-}
-
-void Slime5ControllerComponent::UpdateRadialTelegraph(
-    const DirectX::XMFLOAT3& position, float radiusScale)
-{
-    const float clampedScale = std::max(0.0f, std::min(radiusScale, 1.0f));
-    if (clampedScale <= 0.0f)
-    {
-        HideRadialTelegraph();
-        return;
-    }
-
-    radialTelegraphArea_.GetTransform().SetPosition({
-        position.x, TelegraphHeight, position.z
-    });
-    radialTelegraphArea_.GetTransform().SetScale({
-        RadialTelegraphRadius * clampedScale,
-        1.0f,
-        RadialTelegraphRadius * clampedScale
-    });
-    radialTelegraphRenderer_.SetVisible(true);
 }
 
 void Slime5ControllerComponent::QueueRadialDamageFloors(const DirectX::XMFLOAT3& position)
@@ -297,8 +238,8 @@ void Slime5ControllerComponent::QueueRadialDamageFloors(const DirectX::XMFLOAT3&
 
 void Slime5ControllerComponent::StartJumpSlam(const DirectX::XMFLOAT3& position)
 {
-    HideTelegraph();
-    HideRadialTelegraph();
+    telegraph_.HideLinear();
+    telegraph_.HideRadial();
     SoundPlayer::Play(SlimeJumpSoundPath);
     jumpHoverRemaining_ = JumpHoverDuration;
     jumpRecoverRemaining_ = JumpRecoverDuration;
@@ -383,10 +324,9 @@ void Slime5ControllerComponent::BeginDying()
     jumpHorizontalVelocity_ = { 0.0f, 0.0f };
     hitFlashTimeRemaining_ = HitFlashDuration;
     visual_.SetFlash(HitFlashColor, 1.0f);
-    HideTelegraph();
-    HideRadialTelegraph();
+    telegraph_.HideLinear();
+    telegraph_.HideRadial();
     visual_.PlayAnimation("Die", true);
-    GameTime::StartHitStop(DeathHitStopDuration);
 }
 
 void Slime5ControllerComponent::BeginEscape()
@@ -436,86 +376,10 @@ void Slime5ControllerComponent::BeginEscape()
     deathEffectTimer_ = 0.0f;
     deathEffectsRemaining_ = 0;
     visual_.SetFlash(HitFlashColor, 0.0f);
-    HideTelegraph();
-    HideRadialTelegraph();
+    telegraph_.HideLinear();
+    telegraph_.HideRadial();
     state_ = State::Escaping;
     stateElapsed_ = 0.0f;
-}
-
-Slime5ControllerComponent::Pattern Slime5ControllerComponent::ChooseNextPattern()
-{
-    if (!radialFloorUnlocked_ && health_.GetHealthRatio() <= 0.6f)
-    {
-        radialFloorUnlocked_ = true;
-        radialFloorGuaranteedPending_ = true;
-    }
-
-    if (radialFloorGuaranteedPending_)
-    {
-        previousPattern_ = Pattern::RadialFloor;
-        hasPreviousPattern_ = true;
-        radialFloorGuaranteedPending_ = false;
-        radialFloorRecoveryPending_ = true;
-        return Pattern::RadialFloor;
-    }
-
-    std::array<Pattern, 5> candidates = {
-        Pattern::Chase,
-        Pattern::Dash,
-        Pattern::RadialFloor,
-        Pattern::Strafe,
-        Pattern::JumpSlam
-    };
-    std::size_t candidateCount = 0;
-    for (const Pattern candidate : candidates)
-    {
-        if (candidate == Pattern::RadialFloor &&
-            (!radialFloorUnlocked_ || radialFloorRecoveryPending_))
-        {
-            continue;
-        }
-        if (hasPreviousPattern_)
-        {
-            const bool previousPatternWasWalking =
-                previousPattern_ == Pattern::Chase || previousPattern_ == Pattern::Strafe;
-            const bool candidateIsWalking =
-                candidate == Pattern::Chase || candidate == Pattern::Strafe;
-            if (previousPatternWasWalking && candidateIsWalking)
-            {
-                continue;
-            }
-            const bool disallowConsecutiveChase =
-                candidate == Pattern::Chase && previousPattern_ == Pattern::Chase;
-            const bool disallowConsecutiveRadialFloor =
-                candidate == Pattern::RadialFloor &&
-                previousPattern_ == Pattern::RadialFloor;
-            if (disallowConsecutiveChase || disallowConsecutiveRadialFloor)
-            {
-                continue;
-            }
-        }
-        candidates[candidateCount++] = candidate;
-    }
-
-    if (candidateCount == 0)
-    {
-        candidates[0] = Pattern::Dash;
-        candidateCount = 1;
-    }
-
-    randomState_ = randomState_ * 1664525u + 1013904223u;
-    const Pattern next = candidates[(randomState_ >> 16) % candidateCount];
-    if (next == Pattern::RadialFloor)
-    {
-        radialFloorRecoveryPending_ = true;
-    }
-    else if (next == Pattern::Dash || next == Pattern::JumpSlam)
-    {
-        radialFloorRecoveryPending_ = false;
-    }
-    previousPattern_ = next;
-    hasPreviousPattern_ = true;
-    return next;
 }
 
 void Slime5ControllerComponent::SnapDashDirectionToPlayer(const DirectX::XMFLOAT3& position)
@@ -535,7 +399,7 @@ void Slime5ControllerComponent::SnapDashDirectionToPlayer(const DirectX::XMFLOAT
 
 void Slime5ControllerComponent::StartPattern(const DirectX::XMFLOAT3& position)
 {
-    activePattern_ = ChooseNextPattern();
+    activePattern_ = patternSelector_.Choose(health_.GetHealthRatio());
     patternElapsed_ = 0.0f;
     dashWindupRemaining_ = 0.0f;
     dashPauseRemaining_ = 0.0f;
@@ -556,7 +420,7 @@ void Slime5ControllerComponent::StartPattern(const DirectX::XMFLOAT3& position)
 
     if (activePattern_ == Pattern::Chase)
     {
-        HideRadialTelegraph();
+        telegraph_.HideRadial();
         randomState_ = randomState_ * 1664525u + 1013904223u;
         const float randomValue = static_cast<float>((randomState_ >> 8) & 0xffffu) / 65535.0f;
         currentPatternDuration_ =
@@ -564,7 +428,7 @@ void Slime5ControllerComponent::StartPattern(const DirectX::XMFLOAT3& position)
     }
     else if (activePattern_ == Pattern::Dash)
     {
-        HideRadialTelegraph();
+        telegraph_.HideRadial();
         currentPatternDuration_ =
             DashWindupDuration + TelegraphPauseDuration + DashDuration;
         dashWindupRemaining_ = DashWindupDuration;
@@ -573,7 +437,7 @@ void Slime5ControllerComponent::StartPattern(const DirectX::XMFLOAT3& position)
         SnapDashDirectionToPlayer(position);
         telegraphAnchorPosition_ = position;
         visual_.SetFacingFromHorizontalMovement(dashDirection_.x);
-        UpdateTelegraph(position, dashDirection_, 0.0f);
+        telegraph_.UpdateLinear(position, dashDirection_, 0.0f);
     }
     else if (activePattern_ == Pattern::RadialFloor)
     {
@@ -582,8 +446,8 @@ void Slime5ControllerComponent::StartPattern(const DirectX::XMFLOAT3& position)
         radialShakeRemaining_ = RadialShakeDuration;
         radialRecoverRemaining_ = 0.0f;
         radialCenterPosition_ = position;
-        HideTelegraph();
-        UpdateRadialTelegraph(radialCenterPosition_, 0.0f);
+        telegraph_.HideLinear();
+        telegraph_.UpdateRadial(radialCenterPosition_, 0.0f);
     }
     else if (activePattern_ == Pattern::JumpSlam)
     {
@@ -591,8 +455,8 @@ void Slime5ControllerComponent::StartPattern(const DirectX::XMFLOAT3& position)
     }
     else
     {
-        HideTelegraph();
-        HideRadialTelegraph();
+        telegraph_.HideLinear();
+        telegraph_.HideRadial();
         randomState_ = randomState_ * 1664525u + 1013904223u;
         const float randomValue = static_cast<float>((randomState_ >> 8) & 0xffffu) / 65535.0f;
         currentPatternDuration_ =
@@ -614,11 +478,12 @@ void Slime5ControllerComponent::StartPattern(const DirectX::XMFLOAT3& position)
     }
 }
 
-void Slime5ControllerComponent::StartSpawn(int spawnIndex)
+void Slime5ControllerComponent::StartSpawn(int spawnIndex, int spawnLocationIndex)
 {
     constexpr float laneOffsets[] = { 0.0f, -1.7f, 1.7f, -3.0f, 3.0f };
-    const int side = spawnIndex % 4;
-    const float laneOffset = laneOffsets[(spawnIndex / 4) % 5];
+    const int locationIndex = spawnLocationIndex >= 0 ? spawnLocationIndex : spawnIndex;
+    const int side = locationIndex % 4;
+    const float laneOffset = laneOffsets[(locationIndex / 4) % 5];
     if (side == 0)
     {
         spawnStart_ = { 7.1f, GroundY, laneOffset };
@@ -644,10 +509,7 @@ void Slime5ControllerComponent::StartSpawn(int spawnIndex)
     randomState_ ^= static_cast<std::uint32_t>(spawnIndex + 1) * 0x9e3779b9u;
     randomState_ ^= static_cast<std::uint32_t>(
         std::chrono::steady_clock::now().time_since_epoch().count());
-    hasPreviousPattern_ = false;
-    radialFloorUnlocked_ = false;
-    radialFloorGuaranteedPending_ = false;
-    radialFloorRecoveryPending_ = false;
+    patternSelector_.Reset();
     health_.Reset();
     health_.SetCanTakeDamage(false);
     health_.SetBarVisible(false);
@@ -659,8 +521,8 @@ void Slime5ControllerComponent::StartSpawn(int spawnIndex)
     visual_.SetShadowVisible(false);
     visual_.SetFacingFromHorizontalMovement(spawnEnd_.x - spawnStart_.x);
     visual_.PlayAnimation("Idle", true);
-    HideTelegraph();
-    HideRadialTelegraph();
+    telegraph_.HideLinear();
+    telegraph_.HideRadial();
     state_ = State::Spawning;
     stateElapsed_ = 0.0f;
     patternElapsed_ = 0.0f;
@@ -763,8 +625,8 @@ void Slime5ControllerComponent::Update()
         {
             visual_.SetVisible(false);
             visual_.SetFlash(HitFlashColor, 0.0f);
-            HideTelegraph();
-            HideRadialTelegraph();
+            telegraph_.HideLinear();
+            telegraph_.HideRadial();
             state_ = State::Hidden;
             stateElapsed_ = 0.0f;
         }
@@ -789,8 +651,8 @@ void Slime5ControllerComponent::Update()
         {
             visual_.SetVisible(false);
             visual_.SetShadowVisible(false);
-            HideTelegraph();
-            HideRadialTelegraph();
+            telegraph_.HideLinear();
+            telegraph_.HideRadial();
             state_ = State::Hidden;
             stateElapsed_ = 0.0f;
         }
@@ -874,7 +736,7 @@ void Slime5ControllerComponent::Update()
     }
     else if (activePattern_ == Pattern::Dash)
     {
-        HideRadialTelegraph();
+        telegraph_.HideRadial();
         if (dashWindupRemaining_ > 0.0f)
         {
             dashWindupRemaining_ = std::max(0.0f, dashWindupRemaining_ - deltaTime);
@@ -883,18 +745,18 @@ void Slime5ControllerComponent::Update()
             visual_.SetFacingFromHorizontalMovement(dashDirection_.x);
             const float windupProgress =
                 1.0f - dashWindupRemaining_ / std::max(DashWindupDuration, 0.0001f);
-            UpdateTelegraph(telegraphAnchorPosition_, dashDirection_, windupProgress);
+            telegraph_.UpdateLinear(telegraphAnchorPosition_, dashDirection_, windupProgress);
             if (dashWindupRemaining_ <= 0.0f)
             {
                 telegraphAnchorPosition_ = position;
-                UpdateTelegraph(telegraphAnchorPosition_, dashDirection_, 1.0f);
+                telegraph_.UpdateLinear(telegraphAnchorPosition_, dashDirection_, 1.0f);
             }
         }
         else if (dashPauseRemaining_ > 0.0f)
         {
             dashPauseRemaining_ = std::max(0.0f, dashPauseRemaining_ - deltaTime);
             position = telegraphAnchorPosition_;
-            UpdateTelegraph(telegraphAnchorPosition_, dashDirection_, 1.0f);
+            telegraph_.UpdateLinear(telegraphAnchorPosition_, dashDirection_, 1.0f);
 
             const DirectX::XMFLOAT2 shakeSide = { -dashDirection_.y, dashDirection_.x };
             const float shakeOffset = std::sin(
@@ -905,14 +767,14 @@ void Slime5ControllerComponent::Update()
 
             if (dashPauseRemaining_ <= 0.0f)
             {
-                HideTelegraph();
+                telegraph_.HideLinear();
                 EmitChargeBurst(4, 1.0f, 1.0f);
                 SoundPlayer::Play(SlimeRushSoundPath);
             }
         }
         else if (dashDurationRemaining_ > 0.0f)
         {
-            HideTelegraph();
+            telegraph_.HideLinear();
             const float elapsedDashTime = DashDuration - dashDurationRemaining_;
             dashDurationRemaining_ = std::max(0.0f, dashDurationRemaining_ - deltaTime);
             const float previousT = std::min(elapsedDashTime / DashDuration, 1.0f);
@@ -926,7 +788,7 @@ void Slime5ControllerComponent::Update()
     }
     else if (activePattern_ == Pattern::RadialFloor)
     {
-        HideTelegraph();
+        telegraph_.HideLinear();
         if (radialTelegraphRemaining_ > 0.0f)
         {
             radialTelegraphRemaining_ = std::max(0.0f, radialTelegraphRemaining_ - deltaTime);
@@ -934,13 +796,13 @@ void Slime5ControllerComponent::Update()
             const float progress =
                 1.0f - radialTelegraphRemaining_ /
                 std::max(RadialTelegraphDuration, 0.0001f);
-            UpdateRadialTelegraph(radialCenterPosition_, progress);
+            telegraph_.UpdateRadial(radialCenterPosition_, progress);
         }
         else if (radialShakeRemaining_ > 0.0f)
         {
             radialShakeRemaining_ = std::max(0.0f, radialShakeRemaining_ - deltaTime);
             radialCenterPosition_ = position;
-            UpdateRadialTelegraph(radialCenterPosition_, 1.0f);
+            telegraph_.UpdateRadial(radialCenterPosition_, 1.0f);
 
             const auto& targetPosition = target_.GetTransform().GetPosition();
             float awayX = radialCenterPosition_.x - targetPosition.x;
@@ -967,19 +829,19 @@ void Slime5ControllerComponent::Update()
             {
                 SoundPlayer::Play(SlimeFloorSoundPath);
                 QueueRadialDamageFloors(radialCenterPosition_);
-                HideRadialTelegraph();
+                telegraph_.HideRadial();
             }
         }
         else if (radialRecoverRemaining_ > 0.0f)
         {
             radialRecoverRemaining_ = std::max(0.0f, radialRecoverRemaining_ - deltaTime);
-            HideRadialTelegraph();
+            telegraph_.HideRadial();
         }
     }
     else if (activePattern_ == Pattern::JumpSlam)
     {
-        HideTelegraph();
-        HideRadialTelegraph();
+        telegraph_.HideLinear();
+        telegraph_.HideRadial();
         jumpTravelElapsed_ = std::min(jumpTravelElapsed_ + deltaTime, jumpTravelDuration_);
         const float travelProgress = std::min(
             jumpTravelElapsed_ / std::max(jumpTravelDuration_, 0.0001f), 1.0f);
@@ -1050,8 +912,8 @@ void Slime5ControllerComponent::Update()
     }
     else
     {
-        HideTelegraph();
-        HideRadialTelegraph();
+        telegraph_.HideLinear();
+        telegraph_.HideRadial();
     }
 
     const bool radialPatternFinished =

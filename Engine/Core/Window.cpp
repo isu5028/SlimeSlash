@@ -22,7 +22,8 @@ bool Window::Initialize(HINSTANCE hInst)
 	wc_.cbWndExtra = 0;
 	wc_.hInstance = hInst;
 	wc_.hIcon = LoadIcon(hInst, IDI_APPLICATION);
-	wc_.hCursor = LoadCursor(hInst, IDC_ARROW);
+	// IDC_ARROW is a system cursor; use a null instance for system resources.
+	wc_.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wc_.hbrBackground = GetSysColorBrush(COLOR_WINDOW);
 	wc_.lpszMenuName = nullptr;
 	wc_.lpszClassName = _T("ShowWindow");
@@ -40,7 +41,7 @@ bool Window::Initialize(HINSTANCE hInst)
 	const DWORD windowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 	AdjustWindowRect(&rect, windowStyle, FALSE);
 
-	hWindow_ = CreateWindow(wc_.lpszClassName, _T("ShowWindow"),
+	hWindow_ = CreateWindow(wc_.lpszClassName, _T("Slime Slash Slayer"),
 		windowStyle,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		rect.right - rect.left, rect.bottom - rect.top,
@@ -82,6 +83,9 @@ bool Window::MessageLoop()
 /*static*/ LRESULT CALLBACK Window::MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) {
+	case WM_SETCURSOR:
+		SetCursor(LoadCursor(nullptr, IDC_ARROW));
+		return TRUE;
 	case WM_DESTROY:
 		// アプリ終了
 		PostQuitMessage(0);

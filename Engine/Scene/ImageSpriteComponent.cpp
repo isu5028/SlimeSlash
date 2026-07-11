@@ -389,7 +389,7 @@ void ImageSpriteComponent::Draw(Renderer& renderer)
             -1.0f, 0.0f, 0.0f, 0.0f,
             static_cast<float>(textureWidth_),
             static_cast<float>(textureWidth_),
-            static_cast<float>(textureHeight_), 0.0f
+            static_cast<float>(textureHeight_), 1.0f
         };
         std::memcpy(colorMapped.pData, colorData, sizeof(colorData));
         context->Unmap(colorBuffer_, 0);

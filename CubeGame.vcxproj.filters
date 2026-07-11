@@ -33,8 +33,11 @@
     <ClCompile Include="Engine\Core\GameTime.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Project\Core\AssetPack.cpp">
-      <Filter>Core</Filter>
+    <ClCompile Include="Engine\Assets\AssetPack.cpp">
+      <Filter>Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\ImageSpriteComponent.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="Project\Core\SoundPlayer.cpp">
       <Filter>Core</Filter>
@@ -87,6 +90,39 @@
     <ClCompile Include="Project\Scene\UnitHealthComponent.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Project\Scene\SceneHazardSystem.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\PlayerCombatResolver.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\Slime5TelegraphController.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\Slime5PatternSelector.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Core\GameInput.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\InputManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\UiSelectionCursor.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\BgmPlaybackController.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\AnimatedTextSystem.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\SceneManagerGameplay.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\SceneManagerUi.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Application.h">
@@ -101,8 +137,11 @@
     <ClInclude Include="Engine\Core\GameTime.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Project\Core\AssetPack.h">
-      <Filter>Core</Filter>
+    <ClInclude Include="Engine\Assets\AssetPack.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\ImageSpriteComponent.h">
+      <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Project\Core\SoundPlayer.h">
       <Filter>Core</Filter>
@@ -186,6 +225,36 @@
     <ClInclude Include="Project\Scene\UnitHealthComponent.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Project\Scene\EnemyTargetRegistry.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\PlayerCombatResolver.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\Slime5TelegraphController.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\Slime5PatternSelector.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Core\GameInput.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\InputManager.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\UiSelectionCursor.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\BgmPlaybackController.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\AnimatedTextSystem.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\SceneHazardSystem.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">
@@ -196,6 +265,14 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\Images\png\Icon.ico">
+      <Filter>Assets</Filter>
+    </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CubeGame.rc">
+      <Filter>Assets</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

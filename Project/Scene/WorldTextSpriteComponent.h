@@ -41,6 +41,21 @@ public:
             worldHeight_ * (static_cast<float>(textureWidth_) /
                 static_cast<float>(textureHeight_));
     }
+    float GetContentWorldWidth() const
+    {
+        return textureHeight_ == 0 ? 0.0f :
+            worldHeight_ * (textContentWidthPixels_ /
+                static_cast<float>(textureHeight_));
+    }
+    float GetContentCenterOffsetWorldX() const
+    {
+        if (textureHeight_ == 0) return 0.0f;
+        const float contentCenterPixels =
+            textContentLeftPixels_ + textContentWidthPixels_ * 0.5f;
+        const float textureCenterPixels = static_cast<float>(textureWidth_) * 0.5f;
+        return worldHeight_ * ((contentCenterPixels - textureCenterPixels) /
+            static_cast<float>(textureHeight_));
+    }
 
     void Draw(Renderer& renderer) override;
 
@@ -68,6 +83,8 @@ private:
     std::string lastError_;
     std::uint32_t textureWidth_ = 0;
     std::uint32_t textureHeight_ = 0;
+    float textContentLeftPixels_ = 0.0f;
+    float textContentWidthPixels_ = 0.0f;
     float worldHeight_ = 1.0f;
     bool initialized_ = false;
     bool visible_ = true;

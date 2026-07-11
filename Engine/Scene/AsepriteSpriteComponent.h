@@ -30,6 +30,7 @@ public:
     void SetVisible(bool visible) { visible_ = visible; }
     void SetFlash(const DirectX::XMFLOAT4& color, float amount);
     void SetDissolveAmount(float amount);
+    void SetOpacity(float opacity);
     void Update() override;
     void Draw(Renderer& renderer) override;
 
@@ -71,6 +72,7 @@ private:
     DirectX::XMFLOAT4 flashColor_ = { 1.0f, 1.0f, 1.0f, 1.0f };
     float flashAmount_ = 0.0f;
     float dissolveAmount_ = 0.0f;
+    float opacity_ = 1.0f;
     // フレーム変更時だけUVを書き換えるための更新フラグ
     bool verticesDirty_ = true;
     bool initialized_ = false;

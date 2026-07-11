@@ -30,10 +30,11 @@ bool ColoredBoxComponent::Setup(
     const float z = depth * 0.5f;
     const float bottom = -height;
     const DirectX::XMFLOAT4 sideColor = {
-        topColor.x * 0.72f, topColor.y * 0.72f, topColor.z * 0.72f, topColor.w
+        // Subtle darker rim: keep the field top bright while grounding its edge.
+        topColor.x * 0.62f, topColor.y * 0.62f, topColor.z * 0.62f, topColor.w
     };
     const DirectX::XMFLOAT4 bottomColor = {
-        topColor.x * 0.55f, topColor.y * 0.55f, topColor.z * 0.55f, topColor.w
+        topColor.x * 0.50f, topColor.y * 0.50f, topColor.z * 0.50f, topColor.w
     };
 
     Vertex vertices[] = {

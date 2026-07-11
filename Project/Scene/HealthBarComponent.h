@@ -26,6 +26,7 @@ public:
         float verticalOffset);
     void Update() override;
     void Draw(Renderer& renderer) override;
+    void SetFadeAlpha(float alpha);
 
 private:
     GameObject& target_;
@@ -38,6 +39,7 @@ private:
     float fillEnd_ = 1.0f;
     float verticalOffset_ = 0.0f;
     float displayedHealthRatio_ = 1.0f;
+    float fadeAlpha_ = 1.0f;
     float dissolveElapsed_ = 0.0f;
     bool dissolving_ = false;
     std::chrono::steady_clock::time_point previousUpdate_;

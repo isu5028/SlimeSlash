@@ -10,16 +10,18 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <zlib.h>
 
 namespace
 {
     struct AssetEntry
     {
         std::uint64_t offset = 0;
-        std::uint64_t size = 0;
+        std::uint64_t packedSize = 0;
+        std::uint64_t unpackedSize = 0;
     };
 
-    constexpr char PackMagic[] = "CGPK0001";
+    constexpr char PackMagic[] = "CGPK0002";
 
     std::unordered_map<std::string, AssetEntry> g_entries;
     std::vector<std::uint8_t> g_packBytes;
@@ -129,7 +131,7 @@ namespace
             }
 
             const std::uint32_t pathLength = readU32();
-            if (position + pathLength + 16 > g_packBytes.size())
+            if (position + pathLength + 24 > g_packBytes.size())
             {
                 errorMessage = "assets.pack entry path is truncated";
                 return false;
@@ -140,8 +142,9 @@ namespace
 
             AssetEntry entry;
             entry.offset = readU64();
-            entry.size = readU64();
-            if (entry.offset + entry.size > g_packBytes.size())
+            entry.packedSize = readU64();
+            entry.unpackedSize = readU64();
+            if (entry.offset + entry.packedSize > g_packBytes.size())
             {
                 errorMessage = "assets.pack entry points outside the file";
                 return false;
@@ -181,20 +184,40 @@ namespace
         bool shouldWrite = true;
         if (std::filesystem::exists(destination, errorCode) && !errorCode)
         {
-            shouldWrite = std::filesystem::file_size(destination, errorCode) != entry.size;
+            shouldWrite = std::filesystem::file_size(destination, errorCode) != entry.unpackedSize;
             errorCode.clear();
         }
 
         if (shouldWrite)
         {
+            std::vector<std::uint8_t> unpackedBytes(
+                static_cast<std::size_t>(entry.unpackedSize));
+            z_stream inflateStream = {};
+            inflateStream.next_in = const_cast<Bytef*>(
+                g_packBytes.data() + static_cast<std::size_t>(entry.offset));
+            inflateStream.avail_in = static_cast<uInt>(entry.packedSize);
+            inflateStream.next_out = unpackedBytes.data();
+            inflateStream.avail_out = static_cast<uInt>(entry.unpackedSize);
+            if (inflateInit2(&inflateStream, -MAX_WBITS) != Z_OK)
+            {
+                return Utf8ToWide(normalized);
+            }
+            const int inflateResult = inflate(&inflateStream, Z_FINISH);
+            inflateEnd(&inflateStream);
+            if (inflateResult != Z_STREAM_END ||
+                inflateStream.total_out != entry.unpackedSize)
+            {
+                return Utf8ToWide(normalized);
+            }
+
             std::ofstream output(destination, std::ios::binary | std::ios::trunc);
             if (!output)
             {
                 return Utf8ToWide(normalized);
             }
             output.write(
-                reinterpret_cast<const char*>(g_packBytes.data() + static_cast<std::size_t>(entry.offset)),
-                static_cast<std::streamsize>(entry.size));
+                reinterpret_cast<const char*>(unpackedBytes.data()),
+                static_cast<std::streamsize>(unpackedBytes.size()));
         }
 
         return destination.wstring();

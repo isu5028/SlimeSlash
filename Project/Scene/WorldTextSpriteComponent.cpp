@@ -177,6 +177,8 @@ bool WorldTextSpriteComponent::Setup(
     worldHeight_ = worldHeight;
     color_ = color;
     visible_ = true;
+    textContentLeftPixels_ = 0.0f;
+    textContentWidthPixels_ = 0.0f;
     if (worldHeight <= 0.0f || text.empty()) return false;
 
     const std::wstring resolvedFontPath = AssetPack::ResolvePath(fontPath);
@@ -286,6 +288,33 @@ bool WorldTextSpriteComponent::CreateTextTexture(
         std::memcpy(destinationRow, sourceRow, static_cast<std::size_t>(textureWidth_) * 4);
     }
     bitmap.UnlockBits(&bitmapData);
+
+    UINT minContentX = textureWidth_;
+    UINT maxContentX = 0;
+    bool hasVisiblePixel = false;
+    for (UINT y = 0; y < textureHeight_; ++y)
+    {
+        const auto* row = pixels.data() + static_cast<std::size_t>(y) * textureWidth_ * 4;
+        for (UINT x = 0; x < textureWidth_; ++x)
+        {
+            const std::uint8_t alpha = row[static_cast<std::size_t>(x) * 4 + 3];
+            if (alpha == 0) continue;
+            minContentX = std::min(minContentX, x);
+            maxContentX = std::max(maxContentX, x);
+            hasVisiblePixel = true;
+        }
+    }
+
+    if (hasVisiblePixel)
+    {
+        textContentLeftPixels_ = static_cast<float>(minContentX);
+        textContentWidthPixels_ = static_cast<float>(maxContentX - minContentX + 1);
+    }
+    else
+    {
+        textContentLeftPixels_ = 0.0f;
+        textContentWidthPixels_ = std::max(1.0f, measureBounds.Width);
+    }
 
     D3D11_TEXTURE2D_DESC description = {};
     description.Width = textureWidth_;
@@ -481,7 +510,7 @@ void WorldTextSpriteComponent::Draw(Renderer& renderer)
             -1.0f, 0.0f, 0.0f, 0.0f,
             static_cast<float>(textureWidth_),
             static_cast<float>(textureWidth_),
-            static_cast<float>(textureHeight_), 0.0f
+            static_cast<float>(textureHeight_), 1.0f
         };
         std::memcpy(colorMapped.pData, colorData, sizeof(colorData));
         context->Unmap(colorBuffer_, 0);

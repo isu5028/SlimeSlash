@@ -3,6 +3,7 @@
 #include "GameObject.h"
 #include "GameTime.h"
 #include "PlayerControllerComponent.h"
+#include "SoundPlayer.h"
 #include "UnitHealthComponent.h"
 #include "UnitVisualComponent.h"
 
@@ -11,6 +12,7 @@
 
 namespace
 {
+    constexpr wchar_t SlimeExplodeSoundPath[] = L"Project/Assets/Sounds/SlimeExplode.wav";
     constexpr float ChaseDuration = 2.2f;
     constexpr float RestDuration = 1.0f;
     constexpr float MoveSpeed = 1.4f;
@@ -63,6 +65,7 @@ void Slime4ControllerComponent::BeginDying()
     hitFlashTimeRemaining_ = HitFlashDuration;
     visual_.SetFlash(HitFlashColor, 1.0f);
     visual_.PlayAnimation("Die", true);
+    SoundPlayer::Play(SlimeExplodeSoundPath);
 }
 
 void Slime4ControllerComponent::BeginEscape()
@@ -103,11 +106,12 @@ void Slime4ControllerComponent::BeginEscape()
     damageFloorDropRemaining_ = 0.0f;
 }
 
-void Slime4ControllerComponent::StartSpawn(int spawnIndex)
+void Slime4ControllerComponent::StartSpawn(int spawnIndex, int spawnLocationIndex)
 {
     constexpr float laneOffsets[] = { 0.0f, -1.7f, 1.7f, -3.0f, 3.0f };
-    const int side = spawnIndex % 4;
-    const float laneOffset = laneOffsets[(spawnIndex / 4) % 5];
+    const int locationIndex = spawnLocationIndex >= 0 ? spawnLocationIndex : spawnIndex;
+    const int side = locationIndex % 4;
+    const float laneOffset = laneOffsets[(locationIndex / 4) % 5];
     if (side == 0)
     {
         spawnStart_ = { 6.2f, GroundY, laneOffset };

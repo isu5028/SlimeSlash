@@ -85,11 +85,12 @@ void SlimeControllerComponent::BeginEscape()
     stateElapsed_ = 0.0f;
 }
 
-void SlimeControllerComponent::StartSpawn(int spawnIndex)
+void SlimeControllerComponent::StartSpawn(int spawnIndex, int spawnLocationIndex)
 {
     constexpr float laneOffsets[] = { 0.0f, -1.7f, 1.7f, -3.0f, 3.0f };
-    const int side = spawnIndex % 4;
-    const float laneOffset = laneOffsets[(spawnIndex / 4) % 5];
+    const int locationIndex = spawnLocationIndex >= 0 ? spawnLocationIndex : spawnIndex;
+    const int side = locationIndex % 4;
+    const float laneOffset = laneOffsets[(locationIndex / 4) % 5];
     if (side == 0)
     {
         spawnStart_ = { 6.2f, GroundY, laneOffset };

@@ -2,6 +2,8 @@
 
 #include "Component.h"
 #include "EnemyController.h"
+#include "Slime5PatternSelector.h"
+#include "Slime5TelegraphController.h"
 
 #include <chrono>
 #include <cstdint>
@@ -37,7 +39,7 @@ public:
 
     void Update() override;
     void ReceiveHit(const DirectX::XMFLOAT2& direction, float knockbackSpeed) override;
-    void StartSpawn(int spawnIndex) override;
+    void StartSpawn(int spawnIndex, int spawnLocationIndex = -1) override;
     bool IsDefeated() const override { return state_ == State::Hidden; }
 
 private:
@@ -50,31 +52,16 @@ private:
         Spawning,
     };
 
-    enum class Pattern
-    {
-        Chase,
-        Dash,
-        RadialFloor,
-        Strafe,
-        JumpSlam,
-    };
+    using Pattern = Slime5AttackPattern;
 
     void BeginDying();
     void BeginEscape();
     void EmitChargeBurst(int count, float speedScale, float sizeScale);
     DirectX::XMFLOAT2 GetDirectionAwayFromPlayer();
-    void HideTelegraph();
-    void HideRadialTelegraph();
-    Pattern ChooseNextPattern();
     static const char* PatternToString(Pattern pattern);
     void QueueRadialDamageFloors(const DirectX::XMFLOAT3& position);
     void StartPattern(const DirectX::XMFLOAT3& position);
     void SnapDashDirectionToPlayer(const DirectX::XMFLOAT3& position);
-    void UpdateTelegraph(
-        const DirectX::XMFLOAT3& position,
-        const DirectX::XMFLOAT2& direction,
-        float lengthScale);
-    void UpdateRadialTelegraph(const DirectX::XMFLOAT3& position, float radiusScale);
     void StartJumpSlam(const DirectX::XMFLOAT3& position);
     DirectX::XMFLOAT3 ClampJumpDestination(const DirectX::XMFLOAT3& position) const;
 
@@ -83,18 +70,14 @@ private:
     UnitVisualComponent& visual_;
     UnitHealthComponent& health_;
     ChargeParticleComponent& chargeParticles_;
-    GameObject& telegraphArea_;
-    ColoredPlaneComponent& telegraphRenderer_;
-    GameObject& radialTelegraphArea_;
-    ColoredDiskComponent& radialTelegraphRenderer_;
+    Slime5TelegraphController telegraph_;
     std::function<void(const DirectX::XMFLOAT3&, float)> queueDamageFloorSpawn_;
     std::function<void(const DirectX::XMFLOAT3&, float)> spawnJumpShards_;
     std::function<void(const DirectX::XMFLOAT3&)> spawnDeathHitEffect_;
     std::function<void()> triggerJumpImpactShake_;
     State state_ = State::Acting;
     Pattern activePattern_ = Pattern::Chase;
-    Pattern previousPattern_ = Pattern::Chase;
-    bool hasPreviousPattern_ = false;
+    Slime5PatternSelector patternSelector_;
     float stateElapsed_ = 0.0f;
     float patternElapsed_ = 0.0f;
     float hitFlashTimeRemaining_ = 0.0f;
@@ -132,9 +115,6 @@ private:
     float deathDuration_ = 0.0f;
     float deathShakeStrength_ = 0.0f;
     int deathEffectsRemaining_ = 0;
-    bool radialFloorUnlocked_ = false;
-    bool radialFloorGuaranteedPending_ = false;
-    bool radialFloorRecoveryPending_ = false;
     std::uint32_t randomState_ = 0x5f3759dfu;
     std::chrono::steady_clock::time_point previousUpdate_;
 };

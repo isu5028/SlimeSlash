@@ -13,14 +13,8 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 }
 
 $assetEntries = @(
-    @{ Source = "Assets\Images\aseprite\Player.aseprite"; PackPath = "Assets/Images/aseprite/Player.aseprite" },
-    @{ Source = "Assets\Images\aseprite\Slime.aseprite"; PackPath = "Assets/Images/aseprite/Slime.aseprite" },
-    @{ Source = "Assets\Images\aseprite\Slime2.aseprite"; PackPath = "Assets/Images/aseprite/Slime2.aseprite" },
-    @{ Source = "Assets\Images\aseprite\Slime3.aseprite"; PackPath = "Assets/Images/aseprite/Slime3.aseprite" },
-    @{ Source = "Assets\Images\aseprite\Slime4.aseprite"; PackPath = "Assets/Images/aseprite/Slime4.aseprite" },
-    @{ Source = "Assets\Images\aseprite\Slime5.aseprite"; PackPath = "Assets/Images/aseprite/Slime5.aseprite" },
-    @{ Source = "Assets\Images\aseprite\HealthBar.aseprite"; PackPath = "Assets/Images/aseprite/HealthBar.aseprite" },
-    @{ Source = "Project\Assets\Fonts\Shikakufuto_Free_ver20251228.ttf"; PackPath = "Project/Assets/Fonts/Shikakufuto_Free_ver20251228.ttf" },
+    @{ Source = "Project\Assets\Fonts\Shikakufuto_ASCII.ttf"; PackPath = "Project/Assets/Fonts/Shikakufuto_Free_ver20251228.ttf" },
+    @{ Source = "Project\Assets\Sounds\BGM.wav"; PackPath = "Project/Assets/Sounds/BGM.wav" },
     @{ Source = "Project\Assets\Sounds\Dash.wav"; PackPath = "Project/Assets/Sounds/Dash.wav" },
     @{ Source = "Project\Assets\Sounds\Jump.wav"; PackPath = "Project/Assets/Sounds/Jump.wav" },
     @{ Source = "Project\Assets\Sounds\PlayerAttackHit.wav"; PackPath = "Project/Assets/Sounds/PlayerAttackHit.wav" },
@@ -30,12 +24,27 @@ $assetEntries = @(
     @{ Source = "Project\Assets\Sounds\PlayerAttackMiss2.wav"; PackPath = "Project/Assets/Sounds/PlayerAttackMiss2.wav" },
     @{ Source = "Project\Assets\Sounds\PlayerAttackMiss3.wav"; PackPath = "Project/Assets/Sounds/PlayerAttackMiss3.wav" },
     @{ Source = "Project\Assets\Sounds\PlayerDamaged.wav"; PackPath = "Project/Assets/Sounds/PlayerDamaged.wav" },
+    @{ Source = "Project\Assets\Sounds\SlimeExplode.wav"; PackPath = "Project/Assets/Sounds/SlimeExplode.wav" },
+    @{ Source = "Project\Assets\Sounds\SlimeFloor.wav"; PackPath = "Project/Assets/Sounds/SlimeFloor.wav" },
+    @{ Source = "Project\Assets\Sounds\SlimeJump.wav"; PackPath = "Project/Assets/Sounds/SlimeJump.wav" },
+    @{ Source = "Project\Assets\Sounds\SlimeRush.wav"; PackPath = "Project/Assets/Sounds/SlimeRush.wav" },
+    @{ Source = "Project\Assets\Sounds\SlimeStamp.wav"; PackPath = "Project/Assets/Sounds/SlimeStamp.wav" },
     @{ Source = "Engine\Shaders\VertexShader.hlsl"; PackPath = "Engine/Shaders/VertexShader.hlsl" },
     @{ Source = "Engine\Shaders\PixelShader.hlsl"; PackPath = "Engine/Shaders/PixelShader.hlsl" },
     @{ Source = "Engine\Shaders\SpriteVertexShader.hlsl"; PackPath = "Engine/Shaders/SpriteVertexShader.hlsl" },
     @{ Source = "Engine\Shaders\SpritePixelShader.hlsl"; PackPath = "Engine/Shaders/SpritePixelShader.hlsl" },
     @{ Source = "Engine\Shaders\ColoredPlaneDitherShader.hlsl"; PackPath = "Engine/Shaders/ColoredPlaneDitherShader.hlsl" }
+    @{ Source = "Engine\Shaders\AnimatedBackgroundShader.hlsl"; PackPath = "Engine/Shaders/AnimatedBackgroundShader.hlsl" }
 )
+
+$imagesRoot = Join-Path $repoRoot "Assets\Images"
+Get-ChildItem -LiteralPath $imagesRoot -Recurse -File | ForEach-Object {
+    $relativePath = $_.FullName.Substring($repoRoot.Length + 1)
+    $assetEntries += @{
+        Source = $relativePath
+        PackPath = ($relativePath -replace '\\', '/')
+    }
+}
 
 $records = @()
 foreach ($entry in $assetEntries) {
@@ -45,10 +54,28 @@ foreach ($entry in $assetEntries) {
     }
 
     $bytes = [System.IO.File]::ReadAllBytes($sourcePath)
+    $compressedStream = New-Object System.IO.MemoryStream
+    try {
+        $deflateStream = New-Object System.IO.Compression.DeflateStream(
+            $compressedStream,
+            [System.IO.Compression.CompressionLevel]::Optimal,
+            $true)
+        try {
+            $deflateStream.Write($bytes, 0, $bytes.Length)
+        }
+        finally {
+            $deflateStream.Dispose()
+        }
+        $packedBytes = $compressedStream.ToArray()
+    }
+    finally {
+        $compressedStream.Dispose()
+    }
     $records += [pscustomobject]@{
         PackPath = ($entry.PackPath -replace '\\', '/')
-        Bytes = $bytes
-        Size = [UInt64]$bytes.Length
+        Bytes = $packedBytes
+        PackedSize = [UInt64]$packedBytes.Length
+        UnpackedSize = [UInt64]$bytes.Length
         Offset = [UInt64]0
     }
 }
@@ -58,13 +85,13 @@ $directorySize = 0
 foreach ($record in $records) {
     $pathBytes = [System.Text.Encoding]::UTF8.GetBytes($record.PackPath)
     $record | Add-Member -NotePropertyName PathBytes -NotePropertyValue $pathBytes
-    $directorySize += 4 + $pathBytes.Length + 8 + 8
+    $directorySize += 4 + $pathBytes.Length + 8 + 8 + 8
 }
 
 $currentOffset = [UInt64]($headerSize + $directorySize)
 foreach ($record in $records) {
     $record.Offset = $currentOffset
-    $currentOffset += $record.Size
+    $currentOffset += $record.PackedSize
 }
 
 $outputDirectory = Split-Path -Parent $OutputPath
@@ -76,14 +103,15 @@ $stream = [System.IO.File]::Open($OutputPath, [System.IO.FileMode]::Create, [Sys
 try {
     $writer = New-Object System.IO.BinaryWriter($stream, [System.Text.Encoding]::UTF8, $true)
     try {
-        $writer.Write([System.Text.Encoding]::ASCII.GetBytes("CGPK0001"))
+        $writer.Write([System.Text.Encoding]::ASCII.GetBytes("CGPK0002"))
         $writer.Write([UInt32]$records.Count)
 
         foreach ($record in $records) {
             $writer.Write([UInt32]$record.PathBytes.Length)
             $writer.Write($record.PathBytes)
             $writer.Write([UInt64]$record.Offset)
-            $writer.Write([UInt64]$record.Size)
+            $writer.Write([UInt64]$record.PackedSize)
+            $writer.Write([UInt64]$record.UnpackedSize)
         }
 
         foreach ($record in $records) {

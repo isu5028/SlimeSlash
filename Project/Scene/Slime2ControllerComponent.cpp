@@ -15,6 +15,7 @@
 namespace
 {
     constexpr wchar_t SlimeRushSoundPath[] = L"Project/Assets/Sounds/SlimeRush.wav";
+    constexpr wchar_t SlimeExplodeSoundPath[] = L"Project/Assets/Sounds/SlimeExplode.wav";
     constexpr float ChargeDuration = 1.15f;
     constexpr float TelegraphPauseDuration = 0.50f;
     constexpr float InterruptedPauseDuration = 0.50f;
@@ -199,13 +200,15 @@ void Slime2ControllerComponent::BeginDying()
     visual_.SetFlash(HitFlashColor, 1.0f);
     HideTelegraph();
     visual_.PlayAnimation("Die", true);
+    SoundPlayer::Play(SlimeExplodeSoundPath);
 }
 
-void Slime2ControllerComponent::StartSpawn(int spawnIndex)
+void Slime2ControllerComponent::StartSpawn(int spawnIndex, int spawnLocationIndex)
 {
     constexpr float laneOffsets[] = { 0.0f, -1.7f, 1.7f, -3.0f, 3.0f };
-    const int side = spawnIndex % 4;
-    const float laneOffset = laneOffsets[(spawnIndex / 4) % 5];
+    const int locationIndex = spawnLocationIndex >= 0 ? spawnLocationIndex : spawnIndex;
+    const int side = locationIndex % 4;
+    const float laneOffset = laneOffsets[(locationIndex / 4) % 5];
     if (side == 0)
     {
         spawnStart_ = { 6.2f, GroundY, laneOffset };

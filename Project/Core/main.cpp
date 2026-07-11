@@ -23,7 +23,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
         MessageBoxW(
             nullptr,
             L"assets.pack or the raw asset folders could not be loaded, or Direct3D initialization failed.",
-            L"CubeGame initialization error",
+            L"Slime Slash Slayer initialization error",
             MB_OK | MB_ICONERROR);
         application->Terminate();
         delete application;
