@@ -1,4 +1,4 @@
-# CubeGame
+# SlimeSlashSlayer
 
 DirectX 11 を使った Windows 向けゲームプロジェクトです。
 
