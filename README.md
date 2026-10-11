@@ -19,8 +19,8 @@ DirectX 11 を使った Windows 向けゲームプロジェクトです。
 PowerShell で実行します。
 
 ```powershell
-git clone https://github.com/isu5028/DirectX11Practice.git
-cd DirectX11Practice
+git clone https://github.com/isu5028/SlimeSlashSlayer.git
+cd SlimeSlashSlayer
 nuget restore .\CubeGame.sln
 msbuild .\CubeGame.sln /p:Configuration=Debug /p:Platform=x64
 ```
