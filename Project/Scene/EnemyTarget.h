@@ -7,6 +7,8 @@ class UnitHitboxComponent;
 
 struct EnemyTarget
 {
+    // Registryに登録する戦闘対象の参照情報
+    // GameObjectを所有せず、各Componentを借用する
     GameObject* object = nullptr;
     UnitHitboxComponent* hitbox = nullptr;
     UnitHitboxComponent* contactHitbox = nullptr;

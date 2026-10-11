@@ -21,6 +21,7 @@ public:
         bool confirmPressed = false;
     };
 
+    // InputManagerの生のキー状態をメニュー操作向けの意味に変換する
     explicit GameInput(InputManager& input) : input_(input) {}
 
     void Update();

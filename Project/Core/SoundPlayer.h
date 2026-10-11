@@ -3,6 +3,8 @@
 class SoundPlayer
 {
 public:
+    static bool Initialize();
+    static void Terminate();
     static bool Play(const wchar_t* filePath);
     static bool PlayBgm(const wchar_t* filePath, bool loop = true);
     static void Update();

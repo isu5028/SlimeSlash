@@ -100,6 +100,7 @@ void SlashAttackEffectComponent::Trigger(const DirectX::XMFLOAT2& direction, int
         return;
     }
 
+    // 斬撃ごとにGameObjectは作らず、短命な見た目の情報だけをvectorへ追加する
     EffectInstance effect;
     effect.comboStage = comboStage;
     effect.direction.x = direction.x / length;
@@ -147,6 +148,7 @@ void SlashAttackEffectComponent::Update()
     {
         effect.elapsed += deltaTime;
     }
+    // AttackDurationを過ぎた斬撃データを削除し、次の攻撃でvectorを再利用する
     effects_.erase(std::remove_if(effects_.begin(), effects_.end(),
         [](const EffectInstance& effect) { return effect.elapsed >= AttackDuration; }),
         effects_.end());

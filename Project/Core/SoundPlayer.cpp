@@ -8,28 +8,56 @@
 
 #include <Windows.h>
 #include <dshow.h>
-#include <mmsystem.h>
 
-#pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "strmiids.lib")
 
 namespace
 {
     constexpr std::size_t MaxSimultaneousSeCount = 3;
-    constexpr std::array<const wchar_t*, MaxSimultaneousSeCount> SeAliases =
+    constexpr std::array<const wchar_t*, 14> SePaths =
     {
-        L"CubeGameSe0",
-        L"CubeGameSe1",
-        L"CubeGameSe2"
+        L"Project/Assets/Sounds/Dash.wav",
+        L"Project/Assets/Sounds/Jump.wav",
+        L"Project/Assets/Sounds/PlayerAttackHit.wav",
+        L"Project/Assets/Sounds/PlayerAttackHit2.wav",
+        L"Project/Assets/Sounds/PlayerAttackHit3.wav",
+        L"Project/Assets/Sounds/PlayerAttackMiss.wav",
+        L"Project/Assets/Sounds/PlayerAttackMiss2.wav",
+        L"Project/Assets/Sounds/PlayerAttackMiss3.wav",
+        L"Project/Assets/Sounds/PlayerDamaged.wav",
+        L"Project/Assets/Sounds/SlimeExplode.wav",
+        L"Project/Assets/Sounds/SlimeFloor.wav",
+        L"Project/Assets/Sounds/SlimeJump.wav",
+        L"Project/Assets/Sounds/SlimeRush.wav",
+        L"Project/Assets/Sounds/SlimeStamp.wav"
     };
+    constexpr std::size_t SePathCount = SePaths.size();
 
     struct SeSlot
     {
         bool active = false;
+        std::size_t clipIndex = SePathCount;
+    };
+
+    struct SePlayback
+    {
+        IGraphBuilder* graph = nullptr;
+        IMediaControl* control = nullptr;
+        IMediaSeeking* seeking = nullptr;
+        IBasicAudio* audio = nullptr;
+        bool loaded = false;
+    };
+
+    struct SeClip
+    {
+        std::wstring logicalPath;
+        std::array<SePlayback, MaxSimultaneousSeCount> playbacks;
     };
 
     std::array<SeSlot, MaxSimultaneousSeCount> g_seSlots;
+    std::array<SeClip, SePathCount> g_seClips;
     std::size_t g_nextSeSlotIndex = 0;
+    bool g_seInitialized = false;
     float g_masterVolume = 1.0f;
     float g_bgmVolume = 1.0f;
     float g_seVolume = 1.0f;
@@ -40,43 +68,9 @@ namespace
     IMediaSeeking* g_bgmSeeking = nullptr;
     IBasicAudio* g_bgmAudio = nullptr;
 
-    int ToMciVolume(float volume)
-    {
-        const float clamped = std::max(0.0f, std::min(volume, 1.0f));
-        return static_cast<int>(clamped * 1000.0f + 0.5f);
-    }
-
     float ClampVolume(float volume)
     {
         return std::max(0.0f, std::min(volume, 1.0f));
-    }
-
-    std::wstring EscapeMciString(const std::wstring& value)
-    {
-        std::wstring escaped;
-        escaped.reserve(value.size());
-        for (const wchar_t character : value)
-        {
-            if (character == L'"')
-            {
-                escaped += L"\"\"";
-            }
-            else
-            {
-                escaped += character;
-            }
-        }
-        return escaped;
-    }
-
-    bool SendMciCommand(const std::wstring& command)
-    {
-        return mciSendStringW(command.c_str(), nullptr, 0, nullptr) == 0;
-    }
-
-    bool QueryMciString(const std::wstring& command, wchar_t* buffer, std::size_t bufferCount)
-    {
-        return mciSendStringW(command.c_str(), buffer, static_cast<UINT>(bufferCount), nullptr) == 0;
     }
 
     long ToDirectShowVolume(float volume)
@@ -85,20 +79,6 @@ namespace
         if (clamped <= 0.0001f) return -10000;
         const double decibels = 2000.0 * std::log10(clamped);
         return static_cast<long>(std::max(-10000.0, std::min(decibels, 0.0)));
-    }
-
-    void ApplySeVolume()
-    {
-        waveOutSetVolume(
-            nullptr,
-            MAKELONG(ToMciVolume(g_masterVolume * g_seVolume) * 65,
-                     ToMciVolume(g_masterVolume * g_seVolume) * 65));
-    }
-
-    void ApplyBgmVolume()
-    {
-        if (!g_bgmAudio) return;
-        g_bgmAudio->put_Volume(ToDirectShowVolume(g_masterVolume * g_bgmVolume));
     }
 
     template <typename T>
@@ -111,43 +91,205 @@ namespace
         }
     }
 
+    void ReleaseSePlayback(SePlayback& playback)
+    {
+        if (playback.control) playback.control->Stop();
+        SafeRelease(playback.audio);
+        SafeRelease(playback.seeking);
+        SafeRelease(playback.control);
+        SafeRelease(playback.graph);
+        playback.loaded = false;
+    }
+
+    void ApplySeVolume()
+    {
+        const long volume = ToDirectShowVolume(g_masterVolume * g_seVolume);
+        for (const SeClip& clip : g_seClips)
+        {
+            for (const SePlayback& playback : clip.playbacks)
+            {
+                if (!playback.loaded || !playback.audio) continue;
+                playback.audio->put_Volume(volume);
+            }
+        }
+    }
+
+    void ApplyBgmVolume()
+    {
+        if (!g_bgmAudio) return;
+        g_bgmAudio->put_Volume(ToDirectShowVolume(g_masterVolume * g_bgmVolume));
+    }
+
+    void InitializeSePlayback(const std::wstring& resolvedPath, SePlayback& playback)
+    {
+        ReleaseSePlayback(playback);
+
+        HRESULT result = CoCreateInstance(
+            CLSID_FilterGraph, nullptr, CLSCTX_INPROC_SERVER,
+            IID_IGraphBuilder, reinterpret_cast<void**>(&playback.graph));
+        if (FAILED(result))
+        {
+            ReleaseSePlayback(playback);
+            return;
+        }
+
+        result = playback.graph->QueryInterface(
+            IID_IMediaControl, reinterpret_cast<void**>(&playback.control));
+        if (FAILED(result))
+        {
+            ReleaseSePlayback(playback);
+            return;
+        }
+
+        result = playback.graph->QueryInterface(
+            IID_IMediaSeeking, reinterpret_cast<void**>(&playback.seeking));
+        if (FAILED(result))
+        {
+            ReleaseSePlayback(playback);
+            return;
+        }
+
+        result = playback.graph->QueryInterface(
+            IID_IBasicAudio, reinterpret_cast<void**>(&playback.audio));
+        if (FAILED(result))
+        {
+            ReleaseSePlayback(playback);
+            return;
+        }
+
+        result = playback.graph->RenderFile(resolvedPath.c_str(), nullptr);
+        if (FAILED(result))
+        {
+            ReleaseSePlayback(playback);
+            return;
+        }
+
+        playback.loaded = true;
+    }
+
     void StopSeSlot(std::size_t slotIndex)
     {
-        const wchar_t* alias = SeAliases[slotIndex];
-        SendMciCommand(std::wstring(L"stop ") + alias);
-        SendMciCommand(std::wstring(L"close ") + alias);
+        if (slotIndex >= MaxSimultaneousSeCount) return;
+
+        SeSlot& slot = g_seSlots[slotIndex];
+        if (slot.active && slot.clipIndex < SePathCount &&
+            g_seClips[slot.clipIndex].playbacks[slotIndex].loaded)
+        {
+            IMediaControl* control = g_seClips[slot.clipIndex].playbacks[slotIndex].control;
+            if (control) control->Stop();
+        }
         g_seSlots[slotIndex].active = false;
+        g_seSlots[slotIndex].clipIndex = SePathCount;
     }
 
     void RefreshSeSlots()
     {
-        std::array<wchar_t, 32> modeBuffer{};
         for (std::size_t i = 0; i < MaxSimultaneousSeCount; ++i)
         {
             if (!g_seSlots[i].active) continue;
 
-            if (!QueryMciString(std::wstring(L"status ") + SeAliases[i] + L" mode",
-                modeBuffer.data(), modeBuffer.size()))
+            const SeSlot& slot = g_seSlots[i];
+            if (slot.clipIndex >= SePathCount ||
+                !g_seClips[slot.clipIndex].playbacks[i].loaded)
             {
                 g_seSlots[i].active = false;
+                g_seSlots[i].clipIndex = SePathCount;
                 continue;
             }
 
-            if (wcscmp(modeBuffer.data(), L"stopped") == 0)
+            OAFilterState state = State_Stopped;
+            IMediaControl* control = g_seClips[slot.clipIndex].playbacks[i].control;
+            if (!control || FAILED(control->GetState(0, &state)))
             {
-                StopSeSlot(i);
+                g_seSlots[i].active = false;
+                g_seSlots[i].clipIndex = SePathCount;
+                continue;
+            }
+
+            if (state == State_Stopped)
+            {
+                g_seSlots[i].active = false;
+                g_seSlots[i].clipIndex = SePathCount;
             }
         }
     }
+
+    std::wstring NormalizeLogicalPath(const wchar_t* filePath)
+    {
+        std::wstring normalized(filePath ? filePath : L"");
+        std::replace(normalized.begin(), normalized.end(), L'\\', L'/');
+        return normalized;
+    }
+
+    std::size_t FindSeClip(const wchar_t* filePath)
+    {
+        const std::wstring normalizedPath = NormalizeLogicalPath(filePath);
+        for (std::size_t clipIndex = 0; clipIndex < SePathCount; ++clipIndex)
+        {
+            if (g_seClips[clipIndex].logicalPath == normalizedPath)
+            {
+                return clipIndex;
+            }
+        }
+        return SePathCount;
+    }
+
+}
+
+bool SoundPlayer::Initialize()
+{
+    if (g_seInitialized) return true;
+
+    g_seInitialized = true;
+    g_nextSeSlotIndex = 0;
+    for (SeSlot& slot : g_seSlots)
+    {
+        slot.active = false;
+        slot.clipIndex = SePathCount;
+    }
+
+    for (std::size_t clipIndex = 0; clipIndex < SePathCount; ++clipIndex)
+    {
+        SeClip& clip = g_seClips[clipIndex];
+        clip.logicalPath = SePaths[clipIndex];
+
+        const std::wstring resolvedPath = AssetPack::ResolvePath(clip.logicalPath);
+        for (std::size_t slotIndex = 0; slotIndex < MaxSimultaneousSeCount; ++slotIndex)
+        {
+            InitializeSePlayback(resolvedPath, clip.playbacks[slotIndex]);
+        }
+    }
+
+    ApplySeVolume();
+    return true;
+}
+
+void SoundPlayer::Terminate()
+{
+    Stop();
+    StopBgm();
+
+    for (SeClip& clip : g_seClips)
+    {
+        for (SePlayback& playback : clip.playbacks)
+        {
+            ReleaseSePlayback(playback);
+        }
+        clip.logicalPath.clear();
+    }
+
+    g_seInitialized = false;
+    g_nextSeSlotIndex = 0;
 }
 
 bool SoundPlayer::Play(const wchar_t* filePath)
 {
     if (!filePath || filePath[0] == L'\0') return false;
+    if (!g_seInitialized && !Initialize()) return false;
     if (g_masterVolume <= 0.0f || g_seVolume <= 0.0f) return true;
 
-    const std::wstring resolvedPath = AssetPack::ResolvePath(filePath);
-    const std::wstring escapedPath = EscapeMciString(resolvedPath);
+    const std::size_t clipIndex = FindSeClip(filePath);
+    if (clipIndex >= SePathCount) return false;
 
     RefreshSeSlots();
 
@@ -165,22 +307,21 @@ bool SoundPlayer::Play(const wchar_t* filePath)
         StopSeSlot(slotIndex);
     }
 
-    const wchar_t* alias = SeAliases[slotIndex];
+    SePlayback& playback = g_seClips[clipIndex].playbacks[slotIndex];
+    if (!playback.loaded || !playback.control || !playback.seeking) return false;
 
-    if (!SendMciCommand(
-        L"open \"" + escapedPath + L"\" type waveaudio alias " + alias))
+    LONGLONG startPosition = 0;
+    if (FAILED(playback.seeking->SetPositions(
+        &startPosition, AM_SEEKING_AbsolutePositioning,
+        nullptr, AM_SEEKING_NoPositioning)))
     {
         return false;
     }
 
-    ApplySeVolume();
-    if (!SendMciCommand(std::wstring(L"play ") + alias))
-    {
-        StopSeSlot(slotIndex);
-        return false;
-    }
+    if (FAILED(playback.control->Run())) return false;
 
     g_seSlots[slotIndex].active = true;
+    g_seSlots[slotIndex].clipIndex = clipIndex;
     g_nextSeSlotIndex = (slotIndex + 1) % MaxSimultaneousSeCount;
     return true;
 }

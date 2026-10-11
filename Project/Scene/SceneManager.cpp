@@ -85,6 +85,7 @@ void SceneManager::Initialize(Renderer& renderer)
 
 void SceneManager::Update()
 {
+    // 1フレーム分の入力を確定してから、現在のSceneStateに応じた更新へ進む
     const auto now = std::chrono::steady_clock::now();
     const float deltaTime = std::min(
         std::chrono::duration<float>(now - previousUpdate_).count(), 0.05f);
@@ -135,6 +136,8 @@ void SceneManager::Update()
     }
 
     camera_.Update();
+    // Gameplayではプレイヤーと危険物を更新した後、危険物の接触判定を行う
+    // その後に敵やエフェクトを更新して、各Objectの描画状態を整える
     if (cube_) cube_->Update();
     if (ground_) ground_->Update();
     if (stageTitle_) stageTitle_->Update();
@@ -178,6 +181,8 @@ void SceneManager::Update()
 
     if (!continuePromptActive_ && !clearPromptActive_ && !tutorialActive_)
     {
+        // 各敵Controllerの死亡状態を集約して、Wave全体のクリアを判定する
+        // 敵個体のAIや死亡演出はController側、次のWaveへの遷移はSceneManager側の責務
         const bool waveDefeated = !enemies_.empty() && std::all_of(
             enemies_.begin(), enemies_.end(), [](const EnemyInstance& enemy)
             {

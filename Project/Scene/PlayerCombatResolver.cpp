@@ -32,6 +32,7 @@ bool PlayerCombatResolver::ResolveAttack(
     int comboStage,
     Camera& camera) const
 {
+    // 攻撃対象の一覧はEnemyTargetRegistryが所有し、Resolverは判定だけを担当する
     bool hit = false;
     for (auto& target : targets_)
     {
@@ -47,6 +48,8 @@ bool PlayerCombatResolver::ResolveTarget(
     int comboStage,
     Camera& camera) const
 {
+    // TargetRegistryには敵・ダメージ床・飛翔破片などが入る
+    // ここでは「攻撃を受けられる対象」だけを距離判定の対象にする
     if (!target.object || !target.hitbox || !target.health ||
         !target.hitReceiver || !target.health->CanTakeDamage()) return false;
 
@@ -72,6 +75,7 @@ bool PlayerCombatResolver::ResolveTarget(
     if (attackTop < targetBottom || attackBottom > targetTop) return false;
 
     const int damage = comboStage == 1 ? 2 : comboStage == 2 ? 3 : 5;
+    // Hitboxは形状を提供するだけで、ダメージ適用と被弾リアクションはここで分担する
     if (!target.health->Damage(damage)) return false;
 
     const float knockbackSpeed = comboStage == 1 ? 2.f : comboStage == 2 ? 3.f : 8.f;

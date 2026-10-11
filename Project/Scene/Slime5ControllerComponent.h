@@ -43,6 +43,11 @@ public:
     bool IsDefeated() const override { return state_ == State::Hidden; }
 
 private:
+    // Acting中に攻撃Patternを切り替え、死亡または退場で行動を終了する
+    // Spawning → Acting → Acting
+    // Acting → Dying → Hidden
+    // Acting → Escaping → Hidden
+    // Patternの遷移はStateとは別にSlime5PatternSelectorが管理する
     enum class State
     {
         Acting,

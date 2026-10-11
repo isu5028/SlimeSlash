@@ -300,6 +300,7 @@ void PlayerControllerComponent::StartDash()
 
 void PlayerControllerComponent::StartAttack(int comboStage)
 {
+    // 攻撃判定・斬撃表示・攻撃音を同じコンボ段階で開始する
     damageAnimationTimeRemaining_ = 0.0f;
     attackEffect_.Trigger(facingDirection_, comboStage);
     const bool hit = combatResolver_.ResolveAttack(

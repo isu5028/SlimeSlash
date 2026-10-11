@@ -26,6 +26,10 @@ public:
     bool IsDefeated() const override { return state_ == State::Hidden; }
 
 private:
+    // 基本は追跡と休止を繰り返し、一定条件でジャンプ行動を挟む
+    // Spawning → Chasing ⇄ Resting
+    // ChasingまたはResting → Dying → Hidden
+    // ChasingまたはResting → Escaping → Hidden
     enum class State
     {
         Chasing,

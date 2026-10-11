@@ -10,6 +10,7 @@
 #include "Application.h"
 #include "AssetPack.h"
 #include "RuntimePath.h"
+#include "SoundPlayer.h"
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 {
@@ -18,6 +19,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
     std::string assetPackError;
     if (!RuntimePath::SetWorkingDirectoryToProjectRoot() ||
         !AssetPack::Initialize(assetPackError) ||
+        !SoundPlayer::Initialize() ||
         !application->Initialize(hInst))
     {
         MessageBoxW(
@@ -26,6 +28,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
             L"Slime Slash Slayer initialization error",
             MB_OK | MB_ICONERROR);
         application->Terminate();
+        SoundPlayer::Terminate();
         delete application;
         if (SUCCEEDED(comResult)) CoUninitialize();
         return 1;
@@ -33,6 +36,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 
     application->Loop();
     application->Terminate();
+    SoundPlayer::Terminate();
     delete application;
     if (SUCCEEDED(comResult)) CoUninitialize();
     return 0;

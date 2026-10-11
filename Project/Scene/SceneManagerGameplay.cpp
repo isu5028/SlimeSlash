@@ -43,6 +43,8 @@ namespace
 
 void SceneManager::CreateWave(int waveNumber)
 {
+    // Wave番号から敵の種類と数を決める
+    // 生成されたEnemyInstanceはSceneManager::enemies_が所有し、各敵Controllerは個体のAIだけを担当する
     std::vector<EnemyType> enemyTypes;
     switch (waveNumber)
     {
@@ -74,6 +76,7 @@ void SceneManager::CreateWave(int waveNumber)
     enemyTargetRegistry_.Reserve(enemyTypes.size());
     for (int index = 0; index < static_cast<int>(enemyTypes.size()); ++index)
     {
+        // 生成順をspawnIndexとして渡し、出現位置や出現タイミングを個体ごとにずらす
         CreateEnemyOfType(index, enemyTypes[index]);
         const int spawnLocationIndex =
             waveNumber == 9 && index >= 4 ? (index - 4 + 2) % 4 : index;
@@ -111,6 +114,7 @@ void SceneManager::CreateEnemyOfType(int spawnIndex, EnemyType enemyType)
         *pRenderer_, 1.0f, { 0.32941177f, 0.18431373f, 0.15686275f, 0.3f });
     radialTelegraphRenderer.SetVisible(false);
 
+    // 敵本体・影・予告表示・体力バーを1つのEnemyInstanceとしてまとめて所有する
     enemy.object = std::make_unique<GameObject>();
     auto& sprite = enemy.object->AddComponent<AsepriteSpriteComponent>();
     const bool useSlime5 = enemyType == EnemyType::Slime5 ||
@@ -171,6 +175,7 @@ void SceneManager::CreateEnemyOfType(int spawnIndex, EnemyType enemyType)
             *enemy.radialTelegraphArea, radialTelegraphRenderer,
             [this](const DirectX::XMFLOAT3& position, float delay)
             {
+                // 敵は床の所有者にならず、HazardSystemへ生成だけを依頼する
                 hazardSystem_.QueueDamageFloorSpawn(position, delay);
             },
             [this](const DirectX::XMFLOAT3& position, float angle)
@@ -220,6 +225,7 @@ void SceneManager::CreateEnemyOfType(int spawnIndex, EnemyType enemyType)
             *player_, *playerController_, visual, health,
             [this](const DirectX::XMFLOAT3& position)
             {
+                // Slime4が消えても床を残すため、実体の管理はHazardSystemに委譲する
                 hazardSystem_.SpawnDamageFloor(*pRenderer_, position);
             });
         enemy.controller = &controller;
@@ -585,6 +591,8 @@ void SceneManager::ClearEnemies()
             enemyTargetRegistry_.Release(targetIndex);
         }
     }
+    // Registryを先に解除してからunique_ptrを破棄する
+    // これにより、破棄済みGameObjectを指すEnemyTargetを残さない
     enemies_.clear();
 }
 

@@ -4,10 +4,15 @@
 
 enum class Slime5AttackPattern
 {
+    // 通常追跡
     Chase,
+    // 予告後に直線突進
     Dash,
+    // 周囲にダメージ床を生成
     RadialFloor,
+    // プレイヤーの周囲を移動
     Strafe,
+    // 跳び上がって着地点を攻撃
     JumpSlam,
 };
 

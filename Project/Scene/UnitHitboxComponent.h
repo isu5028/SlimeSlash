@@ -25,6 +25,8 @@ public:
     void SetUnitVisible(bool visible) { unitVisible_ = visible; }
 
 private:
+    // 当たり判定の大きさを提供するComponent
+    // 実際の攻撃・接触判定はPlayerCombatResolverやSceneHazardSystemがこの値を使って計算する
     static constexpr int SegmentCount = 24;
     static constexpr int VertexCount = SegmentCount * 2 + 1;
     static constexpr int IndexCount = SegmentCount * 9;

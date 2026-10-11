@@ -36,6 +36,8 @@ public:
     void AppendUnitObjects(std::vector<GameObject*>& units) const;
 
 private:
+    // 敵が生成を依頼した危険物を、生成元の敵とは独立して管理する
+    // そのため、敵が倒れてGameObjectごと破棄されても、床や破片は寿命まで残る
     struct QueuedDamageFloorSpawn
     {
         DirectX::XMFLOAT3 position = {};
@@ -44,6 +46,8 @@ private:
 
     struct DamageFloorInstance
     {
+        // unique_ptrがGameObjectの所有権を持つ
+        // vectorから削除されると、GameObjectと配下のComponentもまとめて破棄される
         std::unique_ptr<GameObject> object;
         ColoredPlaneComponent* renderer = nullptr;
         DamageFloorComponent* controller = nullptr;
@@ -57,6 +61,8 @@ private:
 
     struct Slime5JumpShardInstance
     {
+        // 破片本体と影は別GameObject
+        // 影は地面に固定し、本体だけを空中移動させる
         std::unique_ptr<GameObject> shadow;
         std::unique_ptr<GameObject> object;
         Slime5JumpShardComponent* controller = nullptr;

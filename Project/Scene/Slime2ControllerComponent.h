@@ -32,15 +32,27 @@ public:
     bool IsDefeated() const override { return state_ == State::Hidden; }
 
 private:
+    // 出現後は溜めと予告を経て突進する
+    // Charging → TelegraphPause → Dashing → Charging
+    // Dashing中の被弾はInterruptedを経由してChargingへ戻る
+    // DyingとEscapingは通常行動から離脱する終端側の状態
     enum class State
     {
+        // 突進方向を決めながら予告する
         Charging,
+        // 突進中
         Dashing,
+        // 死亡演出中
         Dying,
+        // 画面外へ退場中
         Escaping,
+        // 退場完了
         Hidden,
+        // 攻撃を被弾して一時中断中
         Interrupted,
+        // 出現演出中
         Spawning,
+        // 突進直前の短い停止
         TelegraphPause,
     };
 

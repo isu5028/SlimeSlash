@@ -26,6 +26,9 @@ public:
     bool IsDefeated() const { return state_ == State::Hidden; }
 
 private:
+    // 出現後は追跡と休止を繰り返し、被弾による死亡または退場で終了する
+    // Spawning → Chasing ⇄ Resting → Dying → Hidden
+    // ChasingまたはResting → Escaping → Hidden
     enum class State
     {
         Chasing,

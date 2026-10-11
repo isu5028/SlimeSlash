@@ -73,6 +73,8 @@ void ImpactParticleComponent::Emit(
     const float speed = strong ? 8.2f : 5.2f;
     const float spreadAngle = strong ? 0.85f : 0.55f;
 
+    // エフェクト1個ごとにGameObjectを生成せず、常駐Component内の配列で管理する
+    // 上限を超えた粒子は追加せず、突発的な大量生成でメモリが膨らむのを防ぐ
     for (int index = 0; index < count && particles_.size() < MaxParticles; ++index)
     {
         const std::uint32_t seed =
@@ -128,6 +130,8 @@ void ImpactParticleComponent::Update()
         particle.position.y += particle.velocity.y * deltaTime;
         particle.position.z += particle.velocity.z * deltaTime;
     }
+    // 寿命切れの粒子だけを配列から削除する
+    // Component/GameObject自体は再利用する
     particles_.erase(std::remove_if(particles_.begin(), particles_.end(),
         [](const Particle& particle) { return particle.age >= particle.lifetime; }),
         particles_.end());

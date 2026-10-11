@@ -75,6 +75,7 @@ namespace
 
     bool ReadPack(const std::filesystem::path& packPath, std::string& errorMessage)
     {
+        // Packはヘッダーとディレクトリを先に読み、各ファイルの圧縮データ位置を索引化する
         std::ifstream stream(packPath, std::ios::binary | std::ios::ate);
         if (!stream) return false;
 
@@ -174,6 +175,7 @@ namespace
         destination /= std::filesystem::path(Utf8ToWide(normalized));
 
         const auto& entry = found->second;
+        // 既に同じサイズの展開ファイルがあれば再利用し、毎回の展開を避ける
         std::error_code errorCode;
         std::filesystem::create_directories(destination.parent_path(), errorCode);
         if (errorCode)

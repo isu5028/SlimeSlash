@@ -29,6 +29,10 @@ public:
     bool IsDefeated() const override { return state_ == State::Hidden; }
 
 private:
+    // 通常の追跡と休止を行いながら、移動中にダメージ床を生成する
+    // Spawning → Chasing ⇄ Resting
+    // ChasingまたはResting → Dying → Hidden
+    // ChasingまたはResting → Escaping → Hidden
     enum class State
     {
         Chasing,

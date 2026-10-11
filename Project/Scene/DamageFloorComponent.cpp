@@ -62,6 +62,8 @@ void DamageFloorComponent::Update()
 
     if (state_ == State::Active)
     {
+        // ActiveDuration経過後は見た目を消し始める
+        // 実際のGameObject破棄はSceneHazardSystemがHiddenを検出したタイミングで行う
         activeElapsed_ += deltaTime;
         if (activeElapsed_ >= ActiveDuration)
         {

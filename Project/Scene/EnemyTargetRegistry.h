@@ -10,6 +10,7 @@ class EnemyTargetRegistry
 public:
     std::size_t Acquire(const EnemyTarget& target)
     {
+        // 以前解放されたスロットを優先的に再利用して、登録配列の増加を抑える
         if (!freeIndices_.empty())
         {
             const std::size_t targetIndex = freeIndices_.back();
@@ -29,6 +30,7 @@ public:
             return;
         }
 
+        // ポインタを空にしてからスロットを再利用可能にする
         targets_[targetIndex] = {};
         freeIndices_.push_back(targetIndex);
     }

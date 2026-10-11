@@ -26,9 +26,13 @@ public:
 private:
     enum class State
     {
+        // 有効時間中でプレイヤーへのダメージ判定を行う
         Active,
+        // 出現演出中でまだプレイヤーへダメージを与えない
         Appearing,
+        // 消滅演出中でダメージ判定は停止している
         Disappearing,
+        // 消滅済みで管理システムから削除される
         Hidden,
     };
 

@@ -4,6 +4,7 @@
 
 void InputManager::Sample()
 {
+    // Windowsの仮想キーコードを毎フレーム読み取り、押下状態だけを保持する
     for (std::size_t key = 0; key < KeyCount; ++key)
     {
         current_[key] = (GetAsyncKeyState(static_cast<int>(key)) & 0x8000) != 0;
@@ -12,6 +13,7 @@ void InputManager::Sample()
 
 void InputManager::Commit()
 {
+    // WasPressedとWasReleasedはcurrent_とprevious_の差分で判定する
     previous_ = current_;
 }
 

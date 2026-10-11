@@ -71,6 +71,8 @@ void SceneHazardSystem::QueueDamageFloorSpawn(
     const DirectX::XMFLOAT3& position,
     float delay)
 {
+    // ボスの攻撃中に予約された床を、Updateで遅延時間を消化して処理する
+    // 攻撃Controllerの更新中にvectorを変更しないためのキューでもある
     queuedDamageFloorSpawns_.push_back({ position, std::max(delay, 0.0f) });
 }
 
@@ -111,6 +113,7 @@ void SceneHazardSystem::SpawnDamageFloorTile(
     const DirectX::XMFLOAT3& position)
 {
     DamageFloorInstance floor;
+    // ダメージ床は生成元の敵ではなく、このシステムが所有する独立したObject
     floor.object = std::make_unique<GameObject>();
     floor.center = {
         std::max(
@@ -254,6 +257,8 @@ void SceneHazardSystem::Update(Renderer& renderer, float deltaTime)
         damageFloors_.end(),
         [this](const DamageFloorInstance& floor)
         {
+            // ComponentがHiddenになった床だけを破棄する
+            // Registryの登録はGameObjectの破棄前に解除して、無効なポインタを残さない
             if (!floor.controller || !floor.controller->IsExpired())
             {
                 return false;
@@ -281,6 +286,7 @@ void SceneHazardSystem::Update(Renderer& renderer, float deltaTime)
         slime5JumpShards_.end(),
         [this](const Slime5JumpShardInstance& shard)
         {
+            // 破片本体の寿命が終わったら、Registryから外して本体と影を同時に破棄する
             if (!shard.controller || !shard.controller->IsExpired())
             {
                 return false;
@@ -297,6 +303,7 @@ void SceneHazardSystem::TryHitPlayer(
     GameObject& player,
     const UnitHitboxComponent& playerHitbox) const
 {
+    // ダメージ床は通常の攻撃対象とは別に、床の矩形範囲とプレイヤーのHitboxを直接比較する
     const auto& playerPosition = player.GetTransform().GetPosition();
     if (playerPosition.y > DamageFloorY + 0.08f)
     {
