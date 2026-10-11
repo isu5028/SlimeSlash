@@ -1,0 +1,414 @@
+#include "ImageSpriteComponent.h"
+
+#include "AssetPack.h"
+#include "GameObject.h"
+#include "Renderer.h"
+#include "SpriteVertex.h"
+
+#include <Windows.h>
+#include <gdiplus.h>
+#pragma comment(lib, "gdiplus.lib")
+
+#include <algorithm>
+#include <cstring>
+#include <vector>
+
+namespace
+{
+    Shader sharedSpriteShader;
+    ID3D11Device* sharedSpriteShaderDevice = nullptr;
+
+    void ShareShader(const Shader& source, Shader& destination)
+    {
+        destination.pVertexShader = source.pVertexShader;
+        destination.pPixelShader = source.pPixelShader;
+        destination.pInputLayout = source.pInputLayout;
+        destination.pVertexShader->AddRef();
+        destination.pPixelShader->AddRef();
+        destination.pInputLayout->AddRef();
+    }
+
+    bool CompileSpriteShader(Renderer& renderer, Shader& output)
+    {
+        if (sharedSpriteShaderDevice == renderer.GetDevice() &&
+            sharedSpriteShader.pVertexShader)
+        {
+            ShareShader(sharedSpriteShader, output);
+            return true;
+        }
+
+        ID3DBlob* vertexBlob = nullptr;
+        ID3DBlob* pixelBlob = nullptr;
+        ID3DBlob* errorBlob = nullptr;
+        const UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+        const std::wstring vertexShaderPath =
+            AssetPack::ResolvePath(L"Engine/Shaders/SpriteVertexShader.hlsl");
+        const std::wstring pixelShaderPath =
+            AssetPack::ResolvePath(L"Engine/Shaders/SpritePixelShader.hlsl");
+
+        HRESULT result = D3DCompileFromFile(
+            vertexShaderPath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            "main", "vs_4_0", flags, 0, &vertexBlob, &errorBlob);
+        DX_SAFE_RELEASE(errorBlob);
+        if (FAILED(result)) return false;
+
+        result = renderer.GetDevice()->CreateVertexShader(
+            vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(),
+            nullptr, &output.pVertexShader);
+        if (FAILED(result))
+        {
+            DX_SAFE_RELEASE(vertexBlob);
+            return false;
+        }
+
+        const D3D11_INPUT_ELEMENT_DESC layout[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+        };
+        result = renderer.GetDevice()->CreateInputLayout(
+            layout, _countof(layout),
+            vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(),
+            &output.pInputLayout);
+        DX_SAFE_RELEASE(vertexBlob);
+        if (FAILED(result)) return false;
+
+        result = D3DCompileFromFile(
+            pixelShaderPath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            "main", "ps_4_0", flags, 0, &pixelBlob, &errorBlob);
+        DX_SAFE_RELEASE(errorBlob);
+        if (FAILED(result)) return false;
+
+        result = renderer.GetDevice()->CreatePixelShader(
+            pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(),
+            nullptr, &output.pPixelShader);
+        DX_SAFE_RELEASE(pixelBlob);
+        if (FAILED(result)) return false;
+
+        sharedSpriteShaderDevice = renderer.GetDevice();
+        ShareShader(output, sharedSpriteShader);
+        return true;
+    }
+
+    class GdiplusSession
+    {
+    public:
+        GdiplusSession()
+        {
+            Gdiplus::GdiplusStartupInput startupInput;
+            Gdiplus::GdiplusStartup(&token_, &startupInput, nullptr);
+        }
+
+        ~GdiplusSession()
+        {
+            if (token_ != 0) Gdiplus::GdiplusShutdown(token_);
+        }
+
+    private:
+        ULONG_PTR token_ = 0;
+    };
+
+    GdiplusSession& GetGdiplusSession()
+    {
+        static GdiplusSession session;
+        return session;
+    }
+}
+
+ImageSpriteComponent::ImageSpriteComponent(GameObject& owner)
+    : Component(owner)
+{
+}
+
+ImageSpriteComponent::~ImageSpriteComponent()
+{
+    ReleaseResources();
+}
+
+bool ImageSpriteComponent::Setup(Renderer& renderer, const std::string& filePath, float worldHeight)
+{
+    ReleaseResources();
+    worldHeight_ = worldHeight;
+    visible_ = true;
+    color_ = { 1.0f, 1.0f, 1.0f, 1.0f };
+    if (worldHeight <= 0.0f) return false;
+
+    const std::wstring resolvedPath = AssetPack::ResolvePath(filePath);
+    if (!CreateTexture(renderer, resolvedPath) ||
+        !CreateGeometry(renderer) ||
+        !CreateShaders(renderer) ||
+        !CreateSampler(renderer) ||
+        !CreateColorBuffer(renderer))
+    {
+        ReleaseResources();
+        return false;
+    }
+
+    UpdateVertices(renderer);
+    initialized_ = true;
+    return true;
+}
+
+bool ImageSpriteComponent::SetupSolidColor(Renderer& renderer, float worldHeight)
+{
+    ReleaseResources();
+    worldHeight_ = worldHeight;
+    visible_ = true;
+    color_ = { 1.0f, 1.0f, 1.0f, 1.0f };
+    if (worldHeight <= 0.0f) return false;
+
+    if (!CreateSolidColorTexture(renderer) ||
+        !CreateGeometry(renderer) ||
+        !CreateShaders(renderer) ||
+        !CreateSampler(renderer) ||
+        !CreateColorBuffer(renderer))
+    {
+        ReleaseResources();
+        return false;
+    }
+
+    UpdateVertices(renderer);
+    initialized_ = true;
+    return true;
+}
+
+bool ImageSpriteComponent::CreateTexture(Renderer& renderer, const std::wstring& filePath)
+{
+    GetGdiplusSession();
+
+    Gdiplus::Bitmap bitmap(filePath.c_str());
+    if (bitmap.GetLastStatus() != Gdiplus::Ok) return false;
+
+    textureWidth_ = std::max<UINT>(1, bitmap.GetWidth());
+    textureHeight_ = std::max<UINT>(1, bitmap.GetHeight());
+
+    Gdiplus::Rect lockRect(
+        0, 0, static_cast<INT>(textureWidth_), static_cast<INT>(textureHeight_));
+    Gdiplus::BitmapData bitmapData = {};
+    if (bitmap.LockBits(
+        &lockRect, Gdiplus::ImageLockModeRead,
+        PixelFormat32bppARGB, &bitmapData) != Gdiplus::Ok)
+    {
+        return false;
+    }
+
+    std::vector<std::uint8_t> pixels(
+        static_cast<std::size_t>(textureWidth_) * textureHeight_ * 4);
+    for (UINT y = 0; y < textureHeight_; ++y)
+    {
+        const auto* sourceRow =
+            static_cast<const std::uint8_t*>(bitmapData.Scan0) +
+            static_cast<std::size_t>(y) * bitmapData.Stride;
+        auto* destinationRow =
+            pixels.data() + static_cast<std::size_t>(y) * textureWidth_ * 4;
+        std::memcpy(destinationRow, sourceRow, static_cast<std::size_t>(textureWidth_) * 4);
+    }
+    bitmap.UnlockBits(&bitmapData);
+
+    D3D11_TEXTURE2D_DESC description = {};
+    description.Width = textureWidth_;
+    description.Height = textureHeight_;
+    description.MipLevels = 1;
+    description.ArraySize = 1;
+    description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    description.SampleDesc.Count = 1;
+    description.Usage = D3D11_USAGE_IMMUTABLE;
+    description.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA initialData = {};
+    initialData.pSysMem = pixels.data();
+    initialData.SysMemPitch = textureWidth_ * 4;
+    HRESULT result = renderer.GetDevice()->CreateTexture2D(
+        &description, &initialData, &texture_);
+    if (FAILED(result)) return false;
+
+    result = renderer.GetDevice()->CreateShaderResourceView(
+        texture_, nullptr, &textureView_);
+    return SUCCEEDED(result);
+}
+
+bool ImageSpriteComponent::CreateSolidColorTexture(Renderer& renderer)
+{
+    textureWidth_ = 1;
+    textureHeight_ = 1;
+    const std::uint32_t pixel = 0xFFFFFFFF;
+
+    D3D11_TEXTURE2D_DESC description = {};
+    description.Width = textureWidth_;
+    description.Height = textureHeight_;
+    description.MipLevels = 1;
+    description.ArraySize = 1;
+    description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    description.SampleDesc.Count = 1;
+    description.Usage = D3D11_USAGE_IMMUTABLE;
+    description.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA initialData = {};
+    initialData.pSysMem = &pixel;
+    initialData.SysMemPitch = sizeof(pixel);
+    HRESULT result = renderer.GetDevice()->CreateTexture2D(
+        &description, &initialData, &texture_);
+    if (FAILED(result)) return false;
+
+    result = renderer.GetDevice()->CreateShaderResourceView(
+        texture_, nullptr, &textureView_);
+    return SUCCEEDED(result);
+}
+
+bool ImageSpriteComponent::CreateGeometry(Renderer& renderer)
+{
+    D3D11_BUFFER_DESC vertexDescription = {};
+    vertexDescription.ByteWidth = sizeof(SpriteVertex) * 4;
+    vertexDescription.Usage = D3D11_USAGE_DYNAMIC;
+    vertexDescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    vertexDescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    if (FAILED(renderer.GetDevice()->CreateBuffer(
+        &vertexDescription, nullptr, &vertexBuffer_)))
+    {
+        return false;
+    }
+
+    const std::uint16_t indices[] = { 0, 1, 2, 0, 2, 3 };
+    D3D11_BUFFER_DESC indexDescription = {};
+    indexDescription.ByteWidth = sizeof(indices);
+    indexDescription.Usage = D3D11_USAGE_IMMUTABLE;
+    indexDescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    D3D11_SUBRESOURCE_DATA indexData = {};
+    indexData.pSysMem = indices;
+    if (FAILED(renderer.GetDevice()->CreateBuffer(
+        &indexDescription, &indexData, &indexBuffer_)))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool ImageSpriteComponent::CreateShaders(Renderer& renderer)
+{
+    return CompileSpriteShader(renderer, shader_);
+}
+
+bool ImageSpriteComponent::CreateSampler(Renderer& renderer)
+{
+    D3D11_SAMPLER_DESC description = {};
+    description.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    description.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    description.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    description.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    description.MaxLOD = D3D11_FLOAT32_MAX;
+    return SUCCEEDED(renderer.GetDevice()->CreateSamplerState(&description, &sampler_));
+}
+
+bool ImageSpriteComponent::CreateColorBuffer(Renderer& renderer)
+{
+    D3D11_BUFFER_DESC description = {};
+    description.ByteWidth = 48;
+    description.Usage = D3D11_USAGE_DYNAMIC;
+    description.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    return SUCCEEDED(renderer.GetDevice()->CreateBuffer(&description, nullptr, &colorBuffer_));
+}
+
+void ImageSpriteComponent::UpdateVertices(Renderer& renderer)
+{
+    const float aspect = static_cast<float>(textureWidth_) /
+        static_cast<float>(std::max(textureHeight_, 1u));
+    const float halfWidth = worldHeight_ * aspect * 0.5f;
+    const SpriteVertex vertices[] = {
+        { { -halfWidth, worldHeight_, 0.0f }, { 0.0f, 0.0f } },
+        { {  halfWidth, worldHeight_, 0.0f }, { 1.0f, 0.0f } },
+        { {  halfWidth, 0.0f,        0.0f }, { 1.0f, 1.0f } },
+        { { -halfWidth, 0.0f,        0.0f }, { 0.0f, 1.0f } }
+    };
+
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    if (SUCCEEDED(renderer.GetDeviceContext()->Map(
+        vertexBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+    {
+        std::memcpy(mapped.pData, vertices, sizeof(vertices));
+        renderer.GetDeviceContext()->Unmap(vertexBuffer_, 0);
+    }
+}
+
+void ImageSpriteComponent::SetupWorldTransform(Renderer& renderer)
+{
+    auto& constantBuffer = renderer.GetRenderParam().CbTransformSet;
+    const auto& transform = GetOwner().GetTransform();
+    const auto& scale = transform.GetScale();
+    const auto& rotation = transform.GetRotation();
+    const auto& position = transform.GetPosition();
+
+    const auto scaleMatrix = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
+    const auto rotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(
+        rotation.x, rotation.y, rotation.z);
+    const auto pivotToOrigin =
+        DirectX::XMMatrixTranslation(0.0f, -worldHeight_ * 0.5f, 0.0f);
+    const auto originToPivot =
+        DirectX::XMMatrixTranslation(0.0f, worldHeight_ * 0.5f, 0.0f);
+    const auto translationMatrix = DirectX::XMMatrixTranslation(
+        position.x, position.y, position.z);
+    const auto worldMatrix =
+        pivotToOrigin * scaleMatrix * rotationMatrix * originToPivot * translationMatrix;
+
+    DirectX::XMStoreFloat4x4(
+        &constantBuffer.Data.Transform,
+        DirectX::XMMatrixTranspose(worldMatrix));
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    auto* context = renderer.GetDeviceContext();
+    if (SUCCEEDED(context->Map(
+        constantBuffer.pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+    {
+        std::memcpy(mapped.pData, &constantBuffer.Data, sizeof(constantBuffer.Data));
+        context->Unmap(constantBuffer.pBuffer, 0);
+        context->VSSetConstantBuffers(0, 1, &constantBuffer.pBuffer);
+    }
+}
+
+void ImageSpriteComponent::Draw(Renderer& renderer)
+{
+    if (!visible_ || !initialized_ || !textureView_ || !vertexBuffer_ || !indexBuffer_) return;
+
+    SetupWorldTransform(renderer);
+    auto* context = renderer.GetDeviceContext();
+    const UINT stride = sizeof(SpriteVertex);
+    const UINT offset = 0;
+    context->IASetInputLayout(shader_.pInputLayout);
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetVertexBuffers(0, 1, &vertexBuffer_, &stride, &offset);
+    context->IASetIndexBuffer(indexBuffer_, DXGI_FORMAT_R16_UINT, 0);
+    context->VSSetShader(shader_.pVertexShader, nullptr, 0);
+    context->PSSetShader(shader_.pPixelShader, nullptr, 0);
+    context->PSSetShaderResources(0, 1, &textureView_);
+    context->PSSetSamplers(0, 1, &sampler_);
+
+    D3D11_MAPPED_SUBRESOURCE colorMapped = {};
+    if (SUCCEEDED(context->Map(colorBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &colorMapped)))
+    {
+        const float colorData[12] = {
+            color_.x, color_.y, color_.z, color_.w,
+            -1.0f, 0.0f, 0.0f, 0.0f,
+            static_cast<float>(textureWidth_),
+            static_cast<float>(textureWidth_),
+            static_cast<float>(textureHeight_), 1.0f
+        };
+        std::memcpy(colorMapped.pData, colorData, sizeof(colorData));
+        context->Unmap(colorBuffer_, 0);
+        context->PSSetConstantBuffers(0, 1, &colorBuffer_);
+    }
+
+    context->DrawIndexed(6, 0, 0);
+
+    ID3D11ShaderResourceView* emptyView = nullptr;
+    context->PSSetShaderResources(0, 1, &emptyView);
+}
+
+void ImageSpriteComponent::ReleaseResources()
+{
+    initialized_ = false;
+    DX_SAFE_RELEASE(colorBuffer_);
+    DX_SAFE_RELEASE(sampler_);
+    DX_SAFE_RELEASE(indexBuffer_);
+    DX_SAFE_RELEASE(vertexBuffer_);
+    DX_SAFE_RELEASE(textureView_);
+    DX_SAFE_RELEASE(texture_);
+}

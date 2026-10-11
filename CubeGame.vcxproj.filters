@@ -1,52 +1,278 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Core"><UniqueIdentifier>{CFF169F8-9204-47F6-AC73-8D22F94A11C1}</UniqueIdentifier></Filter>
-    <Filter Include="Graphics"><UniqueIdentifier>{5418B579-D810-45CF-95E1-74AC241AC890}</UniqueIdentifier></Filter>
-    <Filter Include="Scene"><UniqueIdentifier>{243E81FC-B187-42E7-9ED6-C7DC22088116}</UniqueIdentifier></Filter>
-    <Filter Include="Shaders"><UniqueIdentifier>{96F51B58-C835-4FFB-A5A6-B5D167BFF8AD}</UniqueIdentifier></Filter>
-    <Filter Include="Assets"><UniqueIdentifier>{10DAFF76-2999-4477-8A6B-A4898A605BCF}</UniqueIdentifier></Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{CFF169F8-9204-47F6-AC73-8D22F94A11C1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{5418B579-D810-45CF-95E1-74AC241AC890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{243E81FC-B187-42E7-9ED6-C7DC22088116}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{96F51B58-C835-4FFB-A5A6-B5D167BFF8AD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{10DAFF76-2999-4477-8A6B-A4898A605BCF}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core\Application.cpp"><Filter>Core</Filter></ClCompile>
-    <ClCompile Include="Core\main.cpp"><Filter>Core</Filter></ClCompile>
-    <ClCompile Include="Core\pch.cpp"><Filter>Core</Filter></ClCompile>
-    <ClCompile Include="Core\Window.cpp"><Filter>Core</Filter></ClCompile>
-    <ClCompile Include="Graphics\Mesh.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\Model.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\Renderer.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\RenderParam.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\Shader.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Graphics\Triangle.cpp"><Filter>Graphics</Filter></ClCompile>
-    <ClCompile Include="Scene\Camera.cpp"><Filter>Scene</Filter></ClCompile>
-    <ClCompile Include="Scene\SceneManager.cpp"><Filter>Scene</Filter></ClCompile>
+    <ClCompile Include="Core\Application.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\main.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\pch.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Window.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\GameTime.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Assets\AssetPack.cpp">
+      <Filter>Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\ImageSpriteComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Core\SoundPlayer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Mesh.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderParam.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Shader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Triangle.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Camera.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\SceneManager.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\GameObject.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\RotateComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\SlimeControllerComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\UnitVisualComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\ColoredBoxComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\UnitHitboxComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\ImpactParticleComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\HealthBarComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\UnitHealthComponent.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\SceneHazardSystem.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\PlayerCombatResolver.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\Slime5TelegraphController.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\Slime5PatternSelector.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Core\GameInput.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\InputManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\UiSelectionCursor.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\BgmPlaybackController.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\AnimatedTextSystem.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\SceneManagerGameplay.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Project\Scene\SceneManagerUi.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\Application.h"><Filter>Core</Filter></ClInclude>
-    <ClInclude Include="Core\pch.h"><Filter>Core</Filter></ClInclude>
-    <ClInclude Include="Core\Window.h"><Filter>Core</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbProjection.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbProjectionSet.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbTransform.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbTransformSet.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbView.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\CbViewSet.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Mesh.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Model.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Renderer.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\RenderParam.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Shader.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Triangle.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Graphics\Vertex.h"><Filter>Graphics</Filter></ClInclude>
-    <ClInclude Include="Scene\Camera.h"><Filter>Scene</Filter></ClInclude>
-    <ClInclude Include="Scene\SceneManager.h"><Filter>Scene</Filter></ClInclude>
+    <ClInclude Include="Core\Application.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\pch.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Window.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\GameTime.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Assets\AssetPack.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\ImageSpriteComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Core\SoundPlayer.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbProjection.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbProjectionSet.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbTransform.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbTransformSet.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbView.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\CbViewSet.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Mesh.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Renderer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderParam.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Shader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Triangle.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Vertex.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Camera.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\SceneManager.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\TransformComponent.h" />
+    <ClInclude Include="Scene\GameObject.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\RotateComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\SlimeControllerComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\UnitVisualComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\ColoredBoxComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\HitReceiver.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\AttackSettings.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\UnitHitboxComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\ImpactParticleComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\HealthBarComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\UnitHealthComponent.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\EnemyTargetRegistry.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\PlayerCombatResolver.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\Slime5TelegraphController.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\Slime5PatternSelector.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Core\GameInput.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\InputManager.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\UiSelectionCursor.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\BgmPlaybackController.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\AnimatedTextSystem.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Project\Scene\SceneHazardSystem.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\PixelShader.hlsl"><Filter>Shaders</Filter></FxCompile>
-    <FxCompile Include="Shaders\VertexShader.hlsl"><Filter>Shaders</Filter></FxCompile>
+    <FxCompile Include="Shaders\PixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\VertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\Cube.fbx"><Filter>Assets</Filter></None>
+    <None Include="Assets\Images\png\Icon.ico">
+      <Filter>Assets</Filter>
+    </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CubeGame.rc">
+      <Filter>Assets</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
